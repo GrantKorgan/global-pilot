@@ -1,0 +1,8 @@
+# worker/wrangler.toml
+# Used by the wrangler CLI to deploy this Worker. Optional — the Cloudflare
+# dashboard ("paste code, click Deploy") is the simpler path for first deploy.
+# If you install wrangler later: `cd worker && wrangler deploy`.
+
+name = "global-pilot-relay"
+main = "index.js"
+compatibility_date = "2025-01-01"

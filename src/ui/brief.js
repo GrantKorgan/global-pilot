@@ -14,6 +14,7 @@ import { pressureAltitude, densityAltitude } from "../calc/atmosphere.js";
 import { crosswindComponent, preferredRunway } from "../calc/wind.js";
 import { distanceNm, nearestFBStation } from "../calc/geo.js";
 import { parseFB, closestFBAltitude } from "../wx/fb.js";
+import { PROXY_INFO } from "../wx/proxy.js";
 import {
   getLatestMetar, getTaf, altimeterInHg, metarFltCat, parseSignificantWeather,
 } from "../wx/metar.js";
@@ -136,12 +137,16 @@ function renderDiagnostics(status, errors, destFBLookup) {
   const fbInfo = destFBLookup
     ? `<div class="diag-row"><span>Destination FB station</span><span>${destFBLookup.code} (${destFBLookup.distanceNm} nm from field)</span></div>`
     : "";
+  const proxyInfo = PROXY_INFO.usingCustomWorker
+    ? `<div class="diag-row"><span>CORS relay</span><span class="diag-status ok">via your Cloudflare Worker</span></div>`
+    : `<div class="diag-row"><span>CORS relay</span><span>public proxies (allorigins.win + codetabs.com)</span></div>`;
   const anyIssue = errors.length || Object.values(status).some((s) => s !== "ok");
   return `
     <details class="diagnostics" ${anyIssue ? "open" : ""}>
       <summary>Data status ${anyIssue ? "· issues" : "· all feeds ok"}</summary>
       <div style="margin-top:8px;">
         ${rowsHtml}
+        ${proxyInfo}
         ${fbInfo}
         ${errSummary}
       </div>

@@ -52,13 +52,18 @@ No build step, no `npm install`, no API key. Just a static-file server.
 ```
 index.html              # HTML skeleton + all CSS — the visual shell
 hero.jpg / hero-setup.jpg # Welcome + setup background photos
-README.md / CHANGELOG.md / LICENSE / .gitignore
+README.md / CHANGELOG.md / LICENSE / WORKER_SETUP.md / .gitignore
+
+worker/
+├── index.js            # Cloudflare Worker CORS relay (self-host the proxy)
+└── wrangler.toml       # Wrangler CLI config (optional; dashboard deploy works too)
 
 src/
 ├── app.js              # Boot: state + render + event wiring
 ├── data/
 │   ├── airports.js     # DEPARTURES + FB_STATIONS tables
-│   └── aircraft.js     # AIRCRAFT tiers
+│   ├── aircraft.js     # AIRCRAFT tiers
+│   └── types.js        # JSDoc shapes for Trip/Leg/Aircraft + runtime validators
 ├── store/
 │   └── prefs.js        # localStorage helpers
 ├── calc/

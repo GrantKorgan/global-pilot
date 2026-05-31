@@ -4,7 +4,15 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+- **Cloudflare Worker CORS relay** (`worker/index.js`, ~60 lines incl. comments + `worker/wrangler.toml`). One-time setup walkthrough at `WORKER_SETUP.md`. Replaces the flaky public proxies with a self-owned relay on Cloudflare's free tier. Public proxies remain as automatic fallback. Activate by setting `localStorage["global-pilot:worker-url"]` after deploying.
+- **`src/data/types.js`** — JSDoc typedefs for `Trip`, `Leg`, `Aircraft`, plus their sub-shapes (`Contact`, `SlotStatus`, `Customs`, `FuelUplift`, `Overnight`, `Filing`, `CrewMember`). Exports `assertLeg()` and `assertTrip()` runtime validators (loud, helpful errors when data is malformed) and `newLeg()` / `newTrip()` factories. Day 3's Trip Planner UI consumes these.
+- **Diagnostics panel now shows the active CORS relay** — "via your Cloudflare Worker" if you've configured one, "public proxies" otherwise. Visible confirmation that the Worker setup worked.
+
 ### Changed
+- **`src/wx/proxy.js`** — proxy chain now tries the user's Worker first (if `localStorage["global-pilot:worker-url"]` is set), then falls back to public proxies. Exports `PROXY_INFO` so the diagnostics panel can display the current state.
+
+### Changed (prior)
 - **Split the single `index.html` into ES modules under `src/`.** v2 was ~1500 lines in one file; v3 is a 345-line HTML shell (markup + CSS) plus ~13 small JS modules organized by concern: `data/`, `store/`, `calc/`, `wx/`, `ui/`, and `app.js` at the root. Zero behavior change — same brief, same fetches, same UI. Day 1 of the v3 build-out plan; every later day rides on this foundation. **Local development now requires a static server** (`python3 -m http.server 8000`) because browsers block `file://` ES modules; live URL is unaffected.
 - **Renamed project** from "Tahoe Pilot Weather" to **Global Pilot** to match expanded scope toward global multi-leg trip planning. GitHub repo renamed (`tahoe-pilot-weather` → `global-pilot`; GitHub auto-redirects the old URL). Local folder renamed (`~/Desktop/tahoe-pilot-weather` → `~/Desktop/global-pilot`). Welcome heading shortened to "Welcome, pilot". Page `<title>` updated.
 - `localStorage` key migrated from `tahoe-pilot-weather:v2` → `global-pilot:v1`. One-time migration code in `loadPrefs()` copies any existing prefs to the new key so users don't lose their saved last-used departure/aircraft.
