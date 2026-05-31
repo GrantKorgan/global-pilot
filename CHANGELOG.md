@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to Tahoe Pilot Weather. Format follows [Keep a Changelog](https://keepachangelog.com/).
+
+## [v2] — 2026-05-30
+
+### Added
+- **CORS proxy layer** with `api.allorigins.win` as primary and `api.codetabs.com` as automatic fallback. AWC fetches now succeed from any browser.
+- **Diagnostics panel** that auto-opens whenever any data feed fails. Shows per-endpoint status (ok / empty / err) and the actual error message. Also shows which FB forecast station was picked for the destination and its distance from the field.
+- **localStorage persistence** for last-used departure airport, aircraft type, and last destination ICAO. Welcome screen tags the remembered departure with "last used"; setup form pre-fills the saved fields.
+- **Smart destination FB station** — coordinate-based lookup over ~50 FAA winds-aloft forecast stations covering CONUS. Cruise and Descent sections now show **two columns**: departure-region winds and destination-region winds.
+- **Route map** at the top of every brief: Leaflet 1.9.4 from unpkg CDN, OpenStreetMap base layer with an Esri World Imagery satellite toggle (top-right control), markers at both endpoints, polyline along the route.
+- **Print / PDF button** with kneeboard-optimized print CSS: page breaks between phases, hides the map and interactive controls, forces light mode.
+- **MIT LICENSE** + project README + this changelog.
+
+### Fixed
+- Root cause of v1's "No METAR data returned" error: AWC API does not send `Access-Control-Allow-Origin` headers, so every browser was silently blocking the fetches. v1 caught the rejected promises and showed a generic empty-data message; v2 routes through a CORS proxy so the fetches actually succeed.
+- Improved error reporting: when the proxy itself fails, we now show the upstream HTTP status code instead of a generic "couldn't build the brief" message.
+
+### Internal
+- File grew from ~750 to ~1000 lines, still all in one file. Section headers in the script block were renumbered to reflect new sections (proxy, persistence, map).
+
+## [v1] — 2026-05-30
+
+### Added
+- Welcome screen with six Tahoe-area departure airports (KRNO, KTRK, KRTS, KCXP, KMEV, KTVL) and their field elevations as cards.
+- Setup screen with destination ICAO input and a six-tier aircraft dropdown: NA piston, turbo piston, turbine single (Vision Jet / TBM class), mid jet, super-mid jet, heavy jet.
+- Six-phase brief structure: runway, climbout, cruise, descent, approach, ground.
+- Density altitude computation (Koch chart approximation) with red-flag threshold at 8,000 ft.
+- Crosswind component computed per runway; preferred runway auto-selected by max-headwind heuristic.
+- Mountain-wave warning when 12,000 ft winds are westerly (230–310°) ≥ 30 kt, and stronger warning at 18,000 ft ≥ 50 kt.
+- Live METAR, TAF, PIREP, and AIRMET/SIGMET fetches from NOAA's Aviation Weather Center.
+- FB (winds & temperatures aloft) text-format parser converting `ddffttt` tokens to structured `{dir, spd, tempC}` objects per altitude band.
+- Significant-weather flag parser for raw METAR `wxString` (TS, FG, FZ, GR, FU, etc.).
+- Light + dark mode via `prefers-color-scheme`.
+- Single-file architecture: HTML + CSS + JS all in one file, no build step, no dependencies. Designed to work whether double-clicked locally or hosted on the web.
+
+### Known issues
+- AWC API doesn't send CORS headers; browsers block all fetches. Workaround landed in v2.
