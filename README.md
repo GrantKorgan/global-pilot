@@ -12,13 +12,16 @@ Standard sources (1-800-WX-BRIEF, ForeFlight, SkyVector) give you all the data, 
 
 **Just want to use it?** Open the live URL above on any device.
 
-**Want to run locally?** Clone the repo and double-click `index.html`. No build step, no install, no API key.
+**Want to run locally?** Clone the repo and serve it over `localhost`. (Double-clicking the file no longer works since v3 because browsers block ES modules from `file://` URLs.)
 
 ```sh
 git clone https://github.com/GrantKorgan/global-pilot.git
 cd global-pilot
-open index.html
+python3 -m http.server 8000
+open http://localhost:8000/
 ```
+
+No build step, no `npm install`, no API key. Just a static-file server.
 
 ## Features
 
@@ -47,27 +50,45 @@ open index.html
 ## File structure
 
 ```
-index.html          # Whole app — markup + CSS + JS in one file
-README.md           # This file
-CHANGELOG.md        # Version history
-LICENSE             # MIT
-.gitignore
+index.html              # HTML skeleton + all CSS — the visual shell
+hero.jpg / hero-setup.jpg # Welcome + setup background photos
+README.md / CHANGELOG.md / LICENSE / .gitignore
+
+src/
+├── app.js              # Boot: state + render + event wiring
+├── data/
+│   ├── airports.js     # DEPARTURES + FB_STATIONS tables
+│   └── aircraft.js     # AIRCRAFT tiers
+├── store/
+│   └── prefs.js        # localStorage helpers
+├── calc/
+│   ├── atmosphere.js   # Pressure altitude + density altitude
+│   ├── wind.js         # Crosswind component + preferred runway
+│   └── geo.js          # Haversine distance + nearest FB station
+├── wx/
+│   ├── proxy.js        # CORS proxy with failover
+│   ├── fetchers.js     # METAR / TAF / PIREP / AIRMET / FB endpoints
+│   ├── fb.js           # Winds-aloft text decoder
+│   └── metar.js        # METAR/TAF accessors + significant-wx flags
+└── ui/
+    ├── format.js       # Display formatters (wind, altitude, time)
+    ├── welcome.js      # Welcome screen renderer
+    ├── setup.js        # Setup screen renderer
+    ├── brief.js        # Brief orchestrator + 6 phase renderers
+    └── map.js          # Leaflet route map
 ```
 
-The `index.html` is internally organized (see the header comment at the top of the file):
+**How to navigate the codebase:**
 
-| Section | Purpose |
+| When you want to… | Look in… |
 |---|---|
-| `<style>` | All CSS, including `@media print` |
-| `1. PROXY + FETCHERS` | CORS-proxied calls to NOAA AWC |
-| `2. DATA TABLES` | `DEPARTURES`, `AIRCRAFT`, `FB_STATIONS` — extend these |
-| `3. STATE + PERSISTENCE` | State object + localStorage helpers |
-| `4. CALCULATORS` | Density altitude, crosswind, haversine |
-| `5. FB PARSER` | Winds-aloft text decoder |
-| `6. METAR HELPERS` | Field accessors |
-| `7. RENDERERS` | One function per screen / phase |
-| `9. MAP` | Leaflet initialization |
-| `10. EVENT HANDLERS` | Click + submit wiring |
+| Add an airport or change a runway | `src/data/airports.js` |
+| Add an aircraft tier | `src/data/aircraft.js` |
+| Change a math formula | `src/calc/` |
+| Change how NOAA is called | `src/wx/proxy.js` or `src/wx/fetchers.js` |
+| Change what a screen looks like | `src/ui/<screen>.js` |
+| Change when something happens | `src/app.js` (event handlers near the bottom) |
+| Change colors or spacing | The `<style>` block in `index.html` |
 
 ## Extending
 
