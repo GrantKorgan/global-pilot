@@ -100,19 +100,19 @@
     .footnote a { color: var(--muted); }
 
     /* =================================================================
-       WELCOME SCREEN HERO — full-bleed sunset Vision Jet photo with a
-       dark overlay so the airport cards stand out clearly on top.
-       Applies only to the welcome view; setup + brief stay clean.
+       HERO BACKGROUNDS — shared layout for any screen that uses a
+       full-bleed photo with a dark overlay. Individual screens set
+       their own image via .welcome-bg / .setup-bg below. To hero up
+       another screen later, drop one more rule at the bottom.
        ================================================================= */
-    .welcome-bg {
+    .hero-bg {
       position: relative;
       min-height: 100vh;
-      background-image: url('hero.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
     }
-    .welcome-bg::before {
+    .hero-bg::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -125,24 +125,33 @@
       pointer-events: none;
       z-index: 0;
     }
-    .welcome-bg .screen { position: relative; z-index: 1; }
-    .welcome-bg h1 {
+    .hero-bg .screen { position: relative; z-index: 1; }
+    .hero-bg h1 {
       color: #ffffff;
       text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
     }
-    .welcome-bg .lead {
+    .hero-bg .lead {
       color: rgba(255, 255, 255, 0.88);
       text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
     }
-    .welcome-bg .footnote { color: rgba(255, 255, 255, 0.72); }
-    .welcome-bg .footnote a {
+    .hero-bg .footnote { color: rgba(255, 255, 255, 0.72); }
+    .hero-bg .footnote a {
       color: rgba(255, 255, 255, 0.88);
       text-decoration: underline;
     }
-    /* Cards get a subtle drop shadow so they pop off the darkened photo
-       in both light and dark modes. */
-    .welcome-bg .dep-btn { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
-    .welcome-bg .dep-btn:hover { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.40); }
+    /* Back link + form labels — lighter so they read on a dark photo. */
+    .hero-bg .back-btn { color: rgba(255, 255, 255, 0.75); }
+    .hero-bg .back-btn:hover { color: rgba(255, 255, 255, 1); }
+    .hero-bg .setup-form label { color: rgba(255, 255, 255, 0.9); }
+    /* Cards / inputs get a soft drop shadow so they pop off the photo. */
+    .hero-bg .dep-btn { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
+    .hero-bg .dep-btn:hover { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.40); }
+    .hero-bg .setup-form input,
+    .hero-bg .setup-form select { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
+
+    /* Per-screen images — add a new line here to hero up another screen. */
+    .welcome-bg { background-image: url('hero.jpg'); }
+    .setup-bg   { background-image: url('hero-setup.jpg'); }
 
     /* Welcome screen */
     .dep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
@@ -699,7 +708,7 @@
       </button>
     `).join("");
     return `
-      <div class="welcome-bg">
+      <div class="hero-bg welcome-bg">
         <div class="screen">
           <h1>Welcome, Tahoe pilot</h1>
           <p class="lead">Where are you taking off from today?</p>
@@ -723,27 +732,29 @@
         <option value="${key}" ${state.aircraftKey === key ? "selected" : ""}>${info.label}</option>
       `).join("");
     return `
-      <div class="screen">
-        <button class="back-btn" data-action="back-to-welcome">← change departure</button>
-        <h1>${state.departure} → ?</h1>
-        <p class="lead">
-          Departing ${dep.name} (${dep.elev.toLocaleString()} ft MSL).
-          Where to, and what are we flying?
-        </p>
-        <form id="setup-form" class="setup-form" autocomplete="off">
-          <label>
-            Destination ICAO
-            <input type="text" id="dest-input" placeholder="e.g. KSFO" maxlength="4" value="${lastDest}" required>
-          </label>
-          <label>
-            Aircraft type
-            <select id="aircraft-select" required>
-              <option value="" disabled ${!state.aircraftKey ? "selected" : ""}>Select aircraft…</option>
-              ${aircraftOptions}
-            </select>
-          </label>
-          <button type="submit" class="primary-btn">Build brief →</button>
-        </form>
+      <div class="hero-bg setup-bg">
+        <div class="screen">
+          <button class="back-btn" data-action="back-to-welcome">← change departure</button>
+          <h1>${state.departure} → ?</h1>
+          <p class="lead">
+            Departing ${dep.name} (${dep.elev.toLocaleString()} ft MSL).
+            Where to, and what are we flying?
+          </p>
+          <form id="setup-form" class="setup-form" autocomplete="off">
+            <label>
+              Destination ICAO
+              <input type="text" id="dest-input" placeholder="e.g. KSFO" maxlength="4" value="${lastDest}" required>
+            </label>
+            <label>
+              Aircraft type
+              <select id="aircraft-select" required>
+                <option value="" disabled ${!state.aircraftKey ? "selected" : ""}>Select aircraft…</option>
+                ${aircraftOptions}
+              </select>
+            </label>
+            <button type="submit" class="primary-btn">Build brief →</button>
+          </form>
+        </div>
       </div>
     `;
   }

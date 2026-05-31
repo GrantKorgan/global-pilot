@@ -5,7 +5,11 @@ All notable changes to Tahoe Pilot Weather. Format follows [Keep a Changelog](ht
 ## [Unreleased]
 
 ### Added
-- **Hero photo on welcome screen** (`hero.jpg`) — full-bleed Vision Jet at sunset above the clouds with a dark gradient overlay (45–80% opacity, top to bottom) so the airport cards stand out. Heading and subhead switched to white with text shadow on the welcome view only. Setup and brief screens are unchanged.
+- **Hero photo on welcome screen** (`hero.jpg`) — full-bleed Vision Jet at sunset above the clouds with a dark gradient overlay (45–80% opacity, top to bottom) so the airport cards stand out. Heading and subhead switched to white with text shadow on the welcome view only.
+- **Hero photo on setup screen** (`hero-setup.jpg`) — Cirrus SR + Vision Jet pair flying over coastline, same dark-overlay treatment as the welcome screen. Back link, form labels, and inputs adjusted for legibility on the darker background.
+
+### Changed
+- Refactored hero styling into a shared `.hero-bg` class with per-screen `.welcome-bg` / `.setup-bg` rules that only set `background-image`. Heroing another screen later is now a one-line addition.
 
 ## [v2] — 2026-05-30
 
