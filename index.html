@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <!--
-  TAHOE PILOT WEATHER · v2
-  ========================
-  Single-file weather brief for pilots flying out of the Lake Tahoe area.
-  Pulls live data from NOAA's Aviation Weather Center (AWC) — the same
-  underlying source 1-800-WX-BRIEF / Leidos use.
+  GLOBAL PILOT · v2
+  =================
+  Phase-of-flight weather brief and (eventually) multi-leg trip planner
+  for pilots. Currently focused on Lake Tahoe area departures; designed
+  to scale to global multi-leg trips. Pulls live data from NOAA's
+  Aviation Weather Center (AWC) — the same underlying source
+  1-800-WX-BRIEF / Leidos use.
 
   WHY THE EXTRA HOP THROUGH A "CORS PROXY"
   ----------------------------------------
@@ -36,7 +38,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tahoe Pilot Weather</title>
+  <title>Global Pilot</title>
 
   <!-- Leaflet (free open-source map library). Loaded from CDN; no key needed. -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -504,10 +506,20 @@
      render(). `localStorage` survives across browser sessions so we
      can remember the user's last departure + aircraft. */
 
-  const STORAGE_KEY = "tahoe-pilot-weather:v2";
+  const STORAGE_KEY = "global-pilot:v1";
+  // Old key kept for one-time migration from when this project was named
+  // "Tahoe Pilot Weather". Once everyone's loaded the app at least once
+  // under the new name, this branch is dead code and can be removed.
+  const LEGACY_STORAGE_KEY = "tahoe-pilot-weather:v2";
 
   function loadPrefs() {
     try {
+      // Migrate legacy data on first run under the new project name.
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy && !localStorage.getItem(STORAGE_KEY)) {
+        localStorage.setItem(STORAGE_KEY, legacy);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch (e) { return {}; }
@@ -710,7 +722,7 @@
     return `
       <div class="hero-bg welcome-bg">
         <div class="screen">
-          <h1>Welcome, Tahoe pilot</h1>
+          <h1>Welcome, pilot</h1>
           <p class="lead">Where are you taking off from today?</p>
           <div class="dep-grid">${buttons}</div>
           <p class="footnote">

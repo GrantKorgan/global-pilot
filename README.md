@@ -1,8 +1,8 @@
-# Tahoe Pilot Weather
+# Global Pilot
 
-A single-file weather brief for pilots flying out of the Lake Tahoe area. Pulls live data from NOAA's Aviation Weather Center and presents it as a phase-of-flight brief: runway → climbout → cruise → descent → approach → ground.
+A phase-of-flight weather brief and (eventually) multi-leg trip planner for pilots. Currently focused on Lake Tahoe area departures; designed to scale to global multi-leg trip planning with aircraft-specific performance, AI-assisted routing, and a "$1,000 hamburger" airport-cafe database. Pulls live data from NOAA's Aviation Weather Center and renders a brief by phase: runway → climbout → cruise → descent → approach → ground.
 
-**Live:** https://grantkorgan.github.io/tahoe-pilot-weather/
+**Live:** https://grantkorgan.github.io/global-pilot/
 
 ## Why this exists
 
@@ -15,8 +15,8 @@ Standard sources (1-800-WX-BRIEF, ForeFlight, SkyVector) give you all the data, 
 **Want to run locally?** Clone the repo and double-click `index.html`. No build step, no install, no API key.
 
 ```sh
-git clone https://github.com/GrantKorgan/tahoe-pilot-weather.git
-cd tahoe-pilot-weather
+git clone https://github.com/GrantKorgan/global-pilot.git
+cd global-pilot
 open index.html
 ```
 
@@ -109,7 +109,7 @@ To preview changes before pushing:
 
 ```sh
 # Optional: serve over localhost (sidesteps any file:// quirks)
-cd ~/Desktop/tahoe-pilot-weather
+cd ~/Desktop/global-pilot
 python3 -m http.server 8000
 # Then visit http://localhost:8000/
 ```
