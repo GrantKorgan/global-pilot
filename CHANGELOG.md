@@ -2,6 +2,11 @@
 
 All notable changes to Tahoe Pilot Weather. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+- **Hero photo on welcome screen** (`hero.jpg`) — full-bleed Vision Jet at sunset above the clouds with a dark gradient overlay (45–80% opacity, top to bottom) so the airport cards stand out. Heading and subhead switched to white with text shadow on the welcome view only. Setup and brief screens are unchanged.
+
 ## [v2] — 2026-05-30
 
 ### Added
