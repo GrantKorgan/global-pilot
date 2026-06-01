@@ -4,3 +4,6 @@ Thumbs.db
 .vscode/
 .idea/
 node_modules/
+
+# Wrangler local deploy cache — recreated on every `wrangler deploy`.
+worker/.wrangler/

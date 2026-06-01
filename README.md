@@ -65,21 +65,23 @@ src/
 │   ├── aircraft.js     # AIRCRAFT tiers
 │   └── types.js        # JSDoc shapes for Trip/Leg/Aircraft + runtime validators
 ├── store/
-│   └── prefs.js        # localStorage helpers
+│   ├── prefs.js        # localStorage prefs (last departure/aircraft/destination)
+│   └── trips.js        # localStorage trips (CRUD + JSON export/import)
 ├── calc/
 │   ├── atmosphere.js   # Pressure altitude + density altitude
 │   ├── wind.js         # Crosswind component + preferred runway
 │   └── geo.js          # Haversine distance + nearest FB station
 ├── wx/
-│   ├── proxy.js        # CORS proxy with failover
+│   ├── proxy.js        # CORS proxy with failover (custom Worker → public)
 │   ├── fetchers.js     # METAR / TAF / PIREP / AIRMET / FB endpoints
 │   ├── fb.js           # Winds-aloft text decoder
 │   └── metar.js        # METAR/TAF accessors + significant-wx flags
 └── ui/
     ├── format.js       # Display formatters (wind, altitude, time)
-    ├── welcome.js      # Welcome screen renderer
-    ├── setup.js        # Setup screen renderer
-    ├── brief.js        # Brief orchestrator + 6 phase renderers
+    ├── welcome.js      # Welcome screen — airports + Trips entry-point
+    ├── setup.js        # Setup screen — destination + aircraft (quick brief)
+    ├── trips.js        # Trips list + Trip editor
+    ├── brief.js        # Phase-of-flight brief (used by quick-brief and trip-leg paths)
     └── map.js          # Leaflet route map
 ```
 

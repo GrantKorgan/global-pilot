@@ -22,6 +22,24 @@ import {
   formatWind, formatFBWind, formatAltitude, formatCeiling, formatObsTime,
 } from "./format.js";
 
+// ---- Departure airport synthesis -------------------------------------------
+// For non-Tahoe departures (any leg of a trip — e.g. EGKB, LEPA), we build
+// a `dep`-shaped object from the METAR. Runways come back empty; the runway
+// table is hidden when that's the case.
+
+function synthesizeDep(icao, metar) {
+  if (!metar) return null;
+  const fbLookup = nearestFBStation(metar.lat, metar.lon);
+  return {
+    name: metar.name || icao,
+    elev: metar.elev != null ? metar.elev : 0,
+    lat: metar.lat,
+    lon: metar.lon,
+    runways: [],
+    fbStation: fbLookup ? fbLookup.code : "RNO",
+  };
+}
+
 // ---- Orchestrator ----------------------------------------------------------
 
 export function renderBrief(state) {
@@ -52,12 +70,29 @@ export function renderBrief(state) {
   }
 
   const { metars, tafs, pirepsDep, pirepsDest, airsigmets, fbLow, fbHigh, status } = state.data;
-  const dep = DEPARTURES[state.departure];
   const aircraft = AIRCRAFT[state.aircraftKey];
   const depMetar  = getLatestMetar(metars, state.departure);
   const destMetar = getLatestMetar(metars, state.destination);
   const depTaf    = getTaf(tafs, state.departure);
   const destTaf   = getTaf(tafs, state.destination);
+
+  // Resolve the departure airport. If it's one of the six Tahoe fields we
+  // have hardcoded runway + FB-station data. Otherwise (e.g. EGKB, LEPA on
+  // a trip leg) we synthesize from the METAR: elev + lat/lon + nearest FB
+  // station via coordinate lookup. Runway-specific bits (crosswind table,
+  // preferred-runway pick) gracefully degrade to "—".
+  const dep = DEPARTURES[state.departure] || synthesizeDep(state.departure, depMetar);
+  if (!dep) {
+    return `
+      <div class="screen">
+        <button class="back-btn" data-action="back-to-setup">← back</button>
+        <div class="error-box">
+          <h2>Can't build brief for ${state.departure}</h2>
+          <p>No METAR returned for the departure airport, and it isn't one of the six Tahoe-area fields we have hardcoded. Check the ICAO and try again.</p>
+        </div>
+      </div>
+    `;
+  }
 
   // Use the high-altitude FB chart for jets, low-altitude for everyone else.
   const useHighFB = aircraft.cruiseFt >= 30000;
@@ -168,14 +203,17 @@ function renderRunwaySection(state, dep, depMetar) {
   const altIn = altimeterInHg(depMetar);
   const DA = densityAltitude(dep.elev, tempC, altIn);
   const PA = altIn != null ? pressureAltitude(dep.elev, altIn) : null;
-  const preferred = preferredRunway(wDir, wSpd, dep.runways);
+  const hasRunwayData = dep.runways && dep.runways.length > 0;
+  const preferred = hasRunwayData ? preferredRunway(wDir, wSpd, dep.runways) : null;
 
   const daBadge = DA == null ? "" : (DA > 8000 ? "high" : DA > 6000 ? "mid" : "ok");
 
-  const runwayRows = dep.runways.map((r) => {
-    const xw = crosswindComponent(wDir, wSpd, r.hdg);
-    return `<tr><td>${r.id}</td><td>${xw} kt</td></tr>`;
-  }).join("");
+  const runwayRows = hasRunwayData
+    ? dep.runways.map((r) => {
+        const xw = crosswindComponent(wDir, wSpd, r.hdg);
+        return `<tr><td>${r.id}</td><td>${xw} kt</td></tr>`;
+      }).join("")
+    : "";
 
   const wxFlags = parseSignificantWeather(depMetar.wxString);
   const daAlert = (DA != null && DA > 8000)
@@ -205,18 +243,28 @@ function renderRunwaySection(state, dep, depMetar) {
         </div>
         <div class="metric">
           <div class="metric-label">Preferred runway</div>
-          <div class="metric-value">${preferred ? preferred.id : "calm — pilot's choice"}</div>
-          <div class="metric-sub">${preferred ? preferred.headwind + " kt headwind · " + preferred.crosswind + " kt xwind" : ""}</div>
+          <div class="metric-value">${
+            !hasRunwayData ? "—"
+            : preferred ? preferred.id
+            : "calm — pilot's choice"
+          }</div>
+          <div class="metric-sub">${
+            !hasRunwayData ? "Runway data not in app — see official chart"
+            : preferred ? preferred.headwind + " kt headwind · " + preferred.crosswind + " kt xwind"
+            : ""
+          }</div>
         </div>
         <div class="metric">
           <div class="metric-label">Flight category</div>
           <div class="metric-value badge-${cat.toLowerCase()}">${cat || "—"}</div>
         </div>
       </div>
-      <table>
-        <thead><tr><th>Runway</th><th>Crosswind component</th></tr></thead>
-        <tbody>${runwayRows}</tbody>
-      </table>
+      ${hasRunwayData ? `
+        <table>
+          <thead><tr><th>Runway</th><th>Crosswind component</th></tr></thead>
+          <tbody>${runwayRows}</tbody>
+        </table>
+      ` : ""}
       ${daAlert}
       ${gustAlert}
       ${wxFlags.length ? `<div class="alert">⚠ Significant weather at field: ${wxFlags.join(", ")}</div>` : ""}

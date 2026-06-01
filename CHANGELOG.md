@@ -4,6 +4,17 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 3 — Trip Planner)
+- **Trip planner screens** (`src/ui/trips.js`) — list view and editor view for multi-leg trips. Trips persist in `localStorage` under `global-pilot:trips:v1`. Each trip has name, aircraft, date range, and an ordered list of legs.
+- **`src/store/trips.js`** — CRUD helpers (`getAllTrips`, `getTrip`, `saveTrip`, `deleteTrip`) plus `exportTripJson` / `importTripJson` for sharing trips as `.json` files (the "sneakernet" path). Every save runs `assertTrip` so malformed data is caught loudly at write time.
+- **Welcome screen now has a "Trips →" entry-point** above the airport grid — the multi-leg planner is now a first-class path alongside the quick-brief.
+- **Click any leg's "Brief →"** opens the existing weather brief scoped to that leg's dep/dest/aircraft. Back from a leg-brief returns to the trip editor (`state.briefSource` controls this).
+- **Brief now works for any ICAO**, not just the six Tahoe-area fields. When the departure isn't in the hardcoded `DEPARTURES` table, a `synthesizeDep()` helper builds an equivalent object from the departure METAR (elev + lat/lon + nearest FB station via coordinate lookup). Runway-specific bits (per-runway crosswind table, preferred-runway pick) gracefully degrade with a "see official chart" note for fields without hardcoded runway data.
+
+### Changed
+- `src/app.js` grew new state fields (`currentTripId`, `briefSource`) and new view branches (`trips`, `tripEdit`). The brief-fetching logic was extracted into a `loadBrief()` helper so both the quick-brief path and the trip-leg path share it.
+- `.gitignore` now excludes `worker/.wrangler/` (wrangler's local deploy cache).
+
 ### Added
 - **Cloudflare Worker CORS relay** (`worker/index.js`, ~60 lines incl. comments + `worker/wrangler.toml`). One-time setup walkthrough at `WORKER_SETUP.md`. Replaces the flaky public proxies with a self-owned relay on Cloudflare's free tier. Public proxies remain as automatic fallback. Activate by setting `localStorage["global-pilot:worker-url"]` after deploying.
 - **`src/data/types.js`** — JSDoc typedefs for `Trip`, `Leg`, `Aircraft`, plus their sub-shapes (`Contact`, `SlotStatus`, `Customs`, `FuelUplift`, `Overnight`, `Filing`, `CrewMember`). Exports `assertLeg()` and `assertTrip()` runtime validators (loud, helpful errors when data is malformed) and `newLeg()` / `newTrip()` factories. Day 3's Trip Planner UI consumes these.
