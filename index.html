@@ -228,6 +228,8 @@
       transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
     }
     .trip-promo:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    /* When the promo is an external link (e.g. cafe finder), kill the default underline. */
+    a.trip-promo { text-decoration: none; }
     .trip-promo-text { display: flex; flex-direction: column; gap: 2px; }
     .trip-promo-text strong { font-size: 16px; }
     .trip-promo-text span { color: var(--muted); font-size: 13px; }

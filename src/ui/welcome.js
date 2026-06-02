@@ -28,11 +28,21 @@ export function renderWelcome(state, prefs) {
         <!-- Single-leg brief entry-point -->
         <button class="trip-promo" data-action="go-to-single-brief">
           <div class="trip-promo-text">
-            <strong>Just need a one-off brief?</strong>
+            <strong>Just need a one-leg brief?</strong>
             <span>Pick departure + destination + aircraft, get a phase-of-flight weather brief.</span>
           </div>
           <span class="trip-promo-arrow">Single-leg brief →</span>
         </button>
+
+        <!-- Cafe finder entry-point — external link to flytolunch.com for v0.
+             Future v4 builds an in-app curated database with a map. -->
+        <a class="trip-promo" href="https://www.flytolunch.com/" target="_blank" rel="noopener noreferrer">
+          <div class="trip-promo-text">
+            <strong>Looking for a $1,000 cheeseburger?</strong>
+            <span>Find an airport cafe on the field — pilot lunch tradition since the 1950s. Opens flytolunch.com in a new tab.</span>
+          </div>
+          <span class="trip-promo-arrow">Cafe finder →</span>
+        </a>
 
         <p class="footnote">
           Live data from <a href="https://aviationweather.gov" target="_blank" rel="noopener">NOAA Aviation Weather Center</a>
