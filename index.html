@@ -382,6 +382,47 @@
     .cafe-card-links a { color: var(--accent); text-decoration: none; }
     .cafe-card-links a:hover { text-decoration: underline; }
 
+    /* Section headers separating "Featured cafes" from "More airports
+       with food on field" (Layer 1 list — lighter cards). */
+    .cafes-section-h {
+      margin: 28px 0 4px; font-size: 16px; font-weight: 600; color: var(--ink);
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .cafes-section-count {
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 1px 8px; border-radius: 10px;
+    }
+    .cafes-section-lead {
+      margin: 0 0 12px; font-size: 13px; color: var(--muted);
+    }
+    .airports-food-list { display: flex; flex-direction: column; gap: 8px; }
+    .airport-food-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .airport-food-head {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+    }
+    .airport-food-icao {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-weight: 600; color: var(--accent); letter-spacing: 0.04em;
+      font-size: 13px;
+    }
+    .airport-food-name { font-size: 14px; color: var(--ink); }
+    .airport-food-region {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+      font-weight: 600; color: var(--muted);
+      background: var(--bg); padding: 1px 6px; border-radius: 3px;
+    }
+    .airport-food-note {
+      margin: 4px 0 6px; font-size: 13px; color: var(--ink); line-height: 1.4;
+    }
+    .airport-food-link {
+      font-size: 12px; color: var(--accent); text-decoration: none;
+    }
+    .airport-food-link:hover { text-decoration: underline; }
+
     /* Add-a-leg form (the box at the bottom of the editor) */
     .leg-form {
       background: var(--surface); border: 1px solid var(--line);
@@ -541,6 +582,7 @@
     body.cockpit .phase,
     body.cockpit .trip-card,
     body.cockpit .cafe-card,
+    body.cockpit .airport-food-card,
     body.cockpit .leg-row,
     body.cockpit .trip-promo,
     body.cockpit .leg-nav,
