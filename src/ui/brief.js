@@ -11,6 +11,7 @@
 import { DEPARTURES } from "../data/airports.js";
 import { AIRCRAFT } from "../data/aircraft.js";
 import { getTrip } from "../store/trips.js";
+import { getProfile } from "../store/profiles.js";
 import { pressureAltitude, densityAltitude } from "../calc/atmosphere.js";
 import { crosswindComponent, preferredRunway } from "../calc/wind.js";
 import { distanceNm, nearestFBStation, isInConus } from "../calc/geo.js";
@@ -75,6 +76,37 @@ function synthesizeDep(icao, metar) {
     runways: [],
     fbStation: fbLookup ? fbLookup.code : null,
   };
+}
+
+// ---- Aircraft spec line (below brief-sub in the header) -------------------
+// Shows fetched-from-Wikipedia specs when the profile cache has them.
+// While the fetch is in-flight on first selection, shows a quiet
+// "Fetching specs…" hint. After a "miss" (no Wikipedia article matched)
+// shows a one-time note so the pilot knows why specs aren't there.
+
+function renderAircraftSpecLine(aircraftKey) {
+  if (!aircraftKey) return "";
+  const profile = getProfile(aircraftKey);
+  if (!profile) {
+    return `<p class="brief-sub aircraft-spec-line aircraft-spec-pending">Fetching aircraft specs…</p>`;
+  }
+  if (profile.source === "wikipedia-miss") {
+    return `<p class="brief-sub aircraft-spec-line aircraft-spec-miss">No Wikipedia data for this model. Using catalog defaults.</p>`;
+  }
+  const bits = [];
+  if (profile.cruiseSpeedKt)    bits.push(`${profile.cruiseSpeedKt} kt cruise`);
+  if (profile.serviceCeilingFt) bits.push(`ceiling ${profile.serviceCeilingFt.toLocaleString()} ft`);
+  if (profile.rangeNm)          bits.push(`range ${profile.rangeNm.toLocaleString()} nm`);
+  if (profile.mtow_lb)          bits.push(`MTOW ${profile.mtow_lb.toLocaleString()} lb`);
+  const sourceLabel =
+    profile.source === "wikipedia"               ? "Wikipedia"
+  : profile.source === "wikipedia-summary-only"  ? "Wikipedia (summary only)"
+  : profile.source === "hardcoded"               ? "POH"
+  :                                                profile.source;
+  if (!bits.length) {
+    return `<p class="brief-sub aircraft-spec-line">Specs not parsed · source: ${escText(sourceLabel)}</p>`;
+  }
+  return `<p class="brief-sub aircraft-spec-line">${escText(bits.join(" · "))} <span class="aircraft-spec-source">· source: ${escText(sourceLabel)}</span></p>`;
 }
 
 // ---- Top-of-brief summary card --------------------------------------------
@@ -368,6 +400,7 @@ export function renderBrief(state) {
             ${routeNm ? `· ${routeNm.toLocaleString()} nm` : ""}
             · ${escText(aircraft.label)}
           </p>
+          ${renderAircraftSpecLine(state.aircraftKey)}
         </div>
         <div class="brief-header-actions">
           <button class="ghost-btn" data-action="print">Print / PDF</button>

@@ -38,6 +38,8 @@ import { initRouteMap   } from "./ui/map.js";
 import { fetchAllData   } from "./wx/fetchers.js";
 import { loadPrefs, savePrefs } from "./store/prefs.js";
 import { getTrip, saveTrip, deleteTrip } from "./store/trips.js";
+import { getProfile, hasProfile, saveProfile } from "./store/profiles.js";
+import { fetchAircraftProfile } from "./wx/wiki.js";
 import { newTrip, newLeg } from "./data/types.js";
 import { AIRCRAFT } from "./data/aircraft.js";
 import { buildEurope2026Trip, EUROPE_2026_TRIP_ID } from "./data/fixtures/europe-2026.js";
@@ -232,6 +234,7 @@ function attachEvents() {
       trip.dateEnd    = document.getElementById("trip-end").value;
       try {
         saveTrip(trip);
+        maybeEnrichAircraft(trip.aircraftId);
         render();
       } catch (err) {
         alert(err.message);
@@ -344,6 +347,7 @@ function attachEvents() {
         return;
       }
       savePrefs({ departure: dep, aircraftKey, lastDestination: dest });
+      maybeEnrichAircraft(aircraftKey);
       setState({
         view: "brief", departure: dep, destination: dest, aircraftKey,
         briefSource: "setup",
@@ -352,6 +356,14 @@ function attachEvents() {
       loadBrief(dep, dest);
     });
   }
+
+  // Pre-warm the cache as soon as the pilot picks an aircraft in either
+  // the setup or trip-edit dropdowns — we don't wait for them to hit
+  // submit. This way the profile is likely already cached by the time
+  // they're ready to brief.
+  document.querySelectorAll("#aircraft-select, #trip-aircraft").forEach((sel) => {
+    sel.addEventListener("change", (e) => maybeEnrichAircraft(e.target.value));
+  });
 
   // === Navigation ===
 
@@ -384,6 +396,7 @@ function openLegBrief(legId) {
   if (!trip) return;
   const leg = trip.legs.find((l) => l.id === legId);
   if (!leg) return;
+  maybeEnrichAircraft(trip.aircraftId);
   setState({
     view: "brief",
     departure: leg.dep,
@@ -395,6 +408,36 @@ function openLegBrief(legId) {
     data: null,
   });
   loadBrief(leg.dep, leg.dest);
+}
+
+// Lazy aircraft profile enrichment.
+//
+// Called whenever an aircraft key becomes "in use" (selected in setup,
+// saved on a trip, or opened in a leg brief). Cheap when already cached;
+// fires a Wikipedia fetch on first sight.
+//
+// When the fetch completes mid-brief, we re-render so the header / summary
+// card update with the new spec data.
+const enrichmentInflight = new Set();
+function maybeEnrichAircraft(key) {
+  if (!key) return;
+  if (hasProfile(key)) return;
+  if (enrichmentInflight.has(key)) return;
+  const entry = AIRCRAFT[key];
+  if (!entry) return; // unknown key (legacy fixture, removed model, etc.)
+  enrichmentInflight.add(key);
+  fetchAircraftProfile(entry)
+    .then((profile) => {
+      if (profile) saveProfile(key, profile);
+    })
+    .catch(() => { /* swallow — next select retries */ })
+    .finally(() => {
+      enrichmentInflight.delete(key);
+      // Re-render if the brief is currently on screen and uses this aircraft.
+      if (state.view === "brief" && state.aircraftKey === key) {
+        render();
+      }
+    });
 }
 
 // Move to prev (-1) or next (+1) leg in the current trip. Used by the
