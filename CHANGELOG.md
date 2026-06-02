@@ -4,6 +4,23 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 6 — iPad polish)
+- **Wake lock** (`src/ui/wakelock.js`) — uses the Screen Wake Lock API to keep the iPad screen on while a brief is open. Acquired in `render()` when `state.view === "brief"` and data is loaded; released on any other view. Handles `visibilitychange` so it re-acquires when the pilot switches to ForeFlight and back. Fails silently on unsupported browsers.
+- **Leg-nav strip on the brief** — when the brief was opened from a trip leg (`briefSource === "trip"`), a strip at the top of the brief shows "Leg N of M · {trip name}" with `← Prev` and `Next →` buttons. Disabled at endpoints. Lets the pilot jump between the 24 Europe legs without bouncing back to the trip editor.
+- **Cockpit mode** — high-contrast theme for bright daylight. Pure white background, black text, bold borders, hero-photo wash removed. Persistent toggle button (top-right, fixed-position, lives outside `#app` so it survives re-renders). State persisted in `localStorage["global-pilot:cockpit"]`. Print CSS hides the toggle.
+- **`@media (pointer: coarse)` touch-target polish** — bumps `.back-btn`, `.ghost-btn`, `.primary-btn`, `.leg-delete`, all form inputs, the `.cafe-card-links`, and the `.leg-nav-btn` to Apple-HIG 44px-ish hit areas on touch devices. Desktop unchanged. The leg-ops `<details>` summary and raw-METAR `<details>` summary get larger tap areas too.
+
+### Added (Day 5.6 — Cafe finder expanded)
+- **`src/data/cafes.js`** expanded from 10 → 21 entries with `region` field across 8 US regions (NorCal, SoCal, Southwest, Pacific NW, Midwest, Mid-Atlantic, Northeast, Southeast). Header comment now documents the v4 plan (FAA NASR + Google Places). Search now matches against region; each card shows a region pill.
+
+### Added (Day 5.5 — Cafe finder)
+- **`src/data/cafes.js`** + **`src/ui/cafes.js`** — in-app curated airport-cafe browser with live search. Each cafe links out to AirNav (airport info) and flytolunch.com (current cafe details). Cafe promo card on welcome now navigates in-app instead of redirecting to flytolunch.com.
+
+### Changed (Day 5.5)
+- Welcome verbiage: "Just need a one-off brief?" → "Just need a one-leg brief?"
+- Welcome layout: removed the six hardcoded Tahoe departure tiles. Three balanced promo cards now: Trips, Single-leg brief, Cafe finder.
+- Setup screen now collects departure ICAO + destination ICAO + aircraft (was destination + aircraft only — departure used to be pre-set by the tile click).
+
 ### Added (Day 5 — The Real Trip)
 - **`src/data/fixtures/europe-2026.js`** — the full N2AK Reno → Europe → Reno trip as a structured `Trip` object. 24 legs (9 eastbound + 8 intra-Europe + 7 westbound), sourced from `N2AK_master_itinerary_consolidated.md`. Intra-Europe legs carry full operational data: FBO contacts with phone/email, slot status with booking window, PPR status, Schengen/UK GAR/eAPIS requirements with state, fuel uplift target with rationale, overnight + ramp fee estimates, flight-plan filing window, and leg-specific notes. Ferry legs carry the lighter set Air Journey controls.
 - **"Load Europe 2026 trip" button** on the Trips list screen. One click seeds all 24 legs + ops data into localStorage and jumps to the editor. Idempotent — once the trip exists, the button hides; subsequent clicks would just re-open the existing trip. The user picked "App is canonical" yesterday; this is how the canonical version arrives.
