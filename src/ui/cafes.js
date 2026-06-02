@@ -63,6 +63,7 @@ export function renderCafes(state) {
 function renderCafeCard(cafe) {
   const airnav    = `https://www.airnav.com/airport/${encodeURIComponent(cafe.icao)}`;
   const flytolunch = `https://www.flytolunch.com/`;
+  const region = cafe.region ? `<span class="cafe-card-region">${escText(cafe.region)}</span>` : "";
   return `
     <div class="cafe-card">
       <div class="cafe-card-head">
@@ -70,6 +71,7 @@ function renderCafeCard(cafe) {
         <div class="cafe-card-meta">
           <span class="cafe-card-icao">${escText(cafe.icao)}</span>
           <span class="cafe-card-city">${escText(cafe.airport)} · ${escText(cafe.city)}</span>
+          ${region}
         </div>
       </div>
       <p class="cafe-card-blurb">${escText(cafe.blurb)}</p>
@@ -81,10 +83,12 @@ function renderCafeCard(cafe) {
   `;
 }
 
-// Match against name, ICAO, airport, city, or blurb.
+// Match against name, ICAO, airport, city, region, or blurb. The region
+// field lets users filter by region keyword ("midwest", "socal", etc.).
 function matchesQuery(q) {
   return (cafe) => {
-    const haystack = [cafe.name, cafe.icao, cafe.airport, cafe.city, cafe.blurb]
+    const haystack = [cafe.name, cafe.icao, cafe.airport, cafe.city, cafe.region, cafe.blurb]
+      .filter(Boolean)
       .join(" ")
       .toLowerCase();
     return haystack.includes(q);
