@@ -32,6 +32,7 @@ import { renderWelcome  } from "./ui/welcome.js";
 import { renderSetup    } from "./ui/setup.js";
 import { renderBrief    } from "./ui/brief.js";
 import { renderTrips, renderTripEdit } from "./ui/trips.js";
+import { renderCafes  } from "./ui/cafes.js";
 import { initRouteMap   } from "./ui/map.js";
 import { fetchAllData   } from "./wx/fetchers.js";
 import { loadPrefs, savePrefs } from "./store/prefs.js";
@@ -45,7 +46,7 @@ import { buildEurope2026Trip, EUROPE_2026_TRIP_ID } from "./data/fixtures/europe
 const prefs = loadPrefs();
 
 let state = {
-  view: "welcome",        // welcome | setup | brief | trips | tripEdit
+  view: "welcome",        // welcome | setup | brief | trips | tripEdit | cafes
   // Quick-brief mode:
   departure: null,        // ICAO of selected departure
   aircraftKey: prefs.aircraftKey || null,
@@ -56,6 +57,8 @@ let state = {
   // Trip planner:
   currentTripId: null,    // when on tripEdit or coming back from a leg brief
   briefSource: "setup",   // "setup" | "trip" — controls back-from-brief navigation
+  // Cafe finder:
+  cafeQuery: "",          // search filter on the cafes screen
 };
 
 function setState(patch) {
@@ -72,6 +75,7 @@ function render() {
   else if (state.view === "brief")    app.innerHTML = renderBrief(state);
   else if (state.view === "trips")    app.innerHTML = renderTrips(state);
   else if (state.view === "tripEdit") app.innerHTML = renderTripEdit(state);
+  else if (state.view === "cafes")    app.innerHTML = renderCafes(state);
   attachEvents();
   if (state.view === "brief" && state.data && !state.loading) initRouteMap();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -118,6 +122,27 @@ function attachEvents() {
   document.querySelectorAll('[data-action="go-to-single-brief"]').forEach((btn) => {
     btn.addEventListener("click", () => setState({ view: "setup", briefSource: "setup" }));
   });
+
+  // Go to the cafe finder ($1,000 cheeseburger screen)
+  document.querySelectorAll('[data-action="go-to-cafes"]').forEach((btn) => {
+    btn.addEventListener("click", () => setState({ view: "cafes", cafeQuery: "" }));
+  });
+
+  // Live search on the cafe finder — re-render on each keystroke.
+  const cafeSearchInput = document.getElementById("cafe-search-input");
+  if (cafeSearchInput) {
+    cafeSearchInput.addEventListener("input", (e) => {
+      // setState re-renders the screen and focus on the input is lost.
+      // Restore focus + cursor position after re-render.
+      const cursorPos = e.target.selectionStart;
+      setState({ cafeQuery: e.target.value });
+      const restored = document.getElementById("cafe-search-input");
+      if (restored) {
+        restored.focus();
+        restored.setSelectionRange(cursorPos, cursorPos);
+      }
+    });
+  }
 
   // === Trips screen ===
 

@@ -34,15 +34,15 @@ export function renderWelcome(state, prefs) {
           <span class="trip-promo-arrow">Single-leg brief →</span>
         </button>
 
-        <!-- Cafe finder entry-point — external link to flytolunch.com for v0.
-             Future v4 builds an in-app curated database with a map. -->
-        <a class="trip-promo" href="https://www.flytolunch.com/" target="_blank" rel="noopener noreferrer">
+        <!-- Cafe finder entry-point — in-app curated list with external
+             links to AirNav + flytolunch.com per cafe. -->
+        <button class="trip-promo" data-action="go-to-cafes">
           <div class="trip-promo-text">
             <strong>Looking for a $1,000 cheeseburger?</strong>
-            <span>Find an airport cafe on the field — pilot lunch tradition since the 1950s. Opens flytolunch.com in a new tab.</span>
+            <span>Curated list of fly-in cafes pilots actually visit. Pilot lunch tradition since the 1950s.</span>
           </div>
           <span class="trip-promo-arrow">Cafe finder →</span>
-        </a>
+        </button>
 
         <p class="footnote">
           Live data from <a href="https://aviationweather.gov" target="_blank" rel="noopener">NOAA Aviation Weather Center</a>
