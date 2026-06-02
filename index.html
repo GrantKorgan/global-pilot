@@ -504,6 +504,97 @@
     .brief-footer a { color: var(--muted); }
 
     /* =================================================================
+       LEG-NAV STRIP on the brief (when opened from a trip leg).
+       Lets the pilot swipe between legs in flight without bouncing
+       back to the trip editor.
+       ================================================================= */
+    .leg-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 16px; padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    }
+    .leg-nav-position { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .leg-nav-current { color: var(--ink); font-weight: 600; font-size: 15px; }
+    .leg-nav-btn {
+      background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+      padding: 10px 16px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 14px;
+      min-width: 64px;
+    }
+    .leg-nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .leg-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* =================================================================
+       COCKPIT MODE — high-contrast theme for bright daylight in the
+       cockpit. Toggled via the .cockpit class on <body>.
+       ================================================================= */
+    body.cockpit {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --ink: #000000;
+      --muted: #333333;
+      --line: #000000;
+      --accent: #003366;
+      --ok: #006400;
+      --warn: #aa0000;
+      --caution: #884400;
+    }
+    body.cockpit .phase,
+    body.cockpit .trip-card,
+    body.cockpit .cafe-card,
+    body.cockpit .leg-row,
+    body.cockpit .trip-promo,
+    body.cockpit .leg-nav,
+    body.cockpit .diagnostics {
+      border-width: 2px;
+    }
+    body.cockpit .hero-bg::before {
+      /* Wash out the hero photo in cockpit mode so the white text is gone
+         and the screen is readable in sun. */
+      background: rgba(255, 255, 255, 0.92);
+    }
+    body.cockpit .hero-bg h1,
+    body.cockpit .hero-bg .lead {
+      color: var(--ink); text-shadow: none;
+    }
+    body.cockpit .hero-bg .footnote { color: var(--muted); }
+    body.cockpit .hero-bg .footnote a { color: var(--accent); }
+
+    /* Cockpit mode toggle button (small, persistent, top-right of every screen) */
+    .cockpit-toggle {
+      position: fixed; top: 12px; right: 12px;
+      background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+      padding: 8px 14px; border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      z-index: 1000; opacity: 0.85;
+    }
+    .cockpit-toggle:hover { opacity: 1; }
+    body.cockpit .cockpit-toggle { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* =================================================================
+       TOUCH-DEVICE POLISH — bumps tappable targets to 44px-ish minimum
+       on phones + iPads, leaves desktop alone. Apple HIG bar.
+       ================================================================= */
+    @media (pointer: coarse) {
+      .back-btn { font-size: 16px; padding: 12px 0; }
+      .ghost-btn { padding: 12px 18px; font-size: 14px; }
+      .leg-delete { padding: 10px 14px !important; font-size: 18px !important; }
+      .primary-btn { padding: 16px 24px; font-size: 17px; }
+      .setup-form input, .setup-form select,
+      .trip-form input, .trip-form select,
+      .leg-form input,
+      .cafe-search input {
+        padding: 14px; font-size: 17px;
+      }
+      .cafe-card-links a { padding: 8px 0; display: inline-block; }
+      .leg-nav-btn { padding: 14px 20px; font-size: 16px; min-width: 88px; }
+      .cockpit-toggle { padding: 12px 18px; font-size: 13px; }
+      /* Larger details summary tap target */
+      .leg-ops summary { padding: 14px; }
+      details.raw summary, .diagnostics summary { padding: 12px 0; font-size: 13px; }
+    }
+
+    /* =================================================================
        PRINT — turns the brief into a clean kneeboard PDF when you hit
        Cmd+P (or click the Print button). Hides interactive UI, forces
        white background, breaks pages between phases.
@@ -519,7 +610,8 @@
       body { background: white; }
       .screen { max-width: none; padding: 0; }
       .back-btn, .brief-header-actions, .setup-form,
-      .footnote, details.raw summary, .leaflet-control-container { display: none !important; }
+      .footnote, details.raw summary, .leaflet-control-container,
+      .cockpit-toggle, .leg-nav { display: none !important; }
       details.raw[open] summary { display: none; }
       details.raw[open] pre { font-size: 10px; }
       details.raw:not([open]) { display: none; }
@@ -534,6 +626,13 @@
   </style>
 </head>
 <body>
+  <!-- Cockpit-mode toggle — persists across screens (lives outside #app
+       so it doesn't get wiped on every re-render). High-contrast theme
+       for bright daylight on an iPad in the cockpit. -->
+  <button id="cockpit-toggle" class="cockpit-toggle" aria-label="Toggle cockpit mode">
+    ☀ Cockpit
+  </button>
+
   <!-- The entire app renders inside this one div. src/app.js does the work. -->
   <div id="app"></div>
   <script type="module" src="./src/app.js"></script>

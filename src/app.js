@@ -33,6 +33,7 @@ import { renderSetup    } from "./ui/setup.js";
 import { renderBrief    } from "./ui/brief.js";
 import { renderTrips, renderTripEdit } from "./ui/trips.js";
 import { renderCafes  } from "./ui/cafes.js";
+import { acquireWakeLock, releaseWakeLock } from "./ui/wakelock.js";
 import { initRouteMap   } from "./ui/map.js";
 import { fetchAllData   } from "./wx/fetchers.js";
 import { loadPrefs, savePrefs } from "./store/prefs.js";
@@ -78,6 +79,15 @@ function render() {
   else if (state.view === "cafes")    app.innerHTML = renderCafes(state);
   attachEvents();
   if (state.view === "brief" && state.data && !state.loading) initRouteMap();
+
+  // Wake lock: keep the screen on while the pilot is reading the brief.
+  // Released on any other view.
+  if (state.view === "brief" && state.data && !state.loading) {
+    acquireWakeLock();
+  } else {
+    releaseWakeLock();
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -269,22 +279,17 @@ function attachEvents() {
   document.querySelectorAll('[data-action="view-leg-brief"]').forEach((btn) => {
     btn.addEventListener("click", () => {
       const legId = btn.dataset.legId;
-      const trip = getTrip(state.currentTripId);
-      if (!trip) return;
-      const leg = trip.legs.find((l) => l.id === legId);
-      if (!leg) return;
-      setState({
-        view: "brief",
-        departure: leg.dep,
-        destination: leg.dest,
-        aircraftKey: trip.aircraftId,
-        briefSource: "trip",     // back-from-brief goes to tripEdit, not setup
-        loading: true,
-        error: null,
-        data: null,
-      });
-      loadBrief(leg.dep, leg.dest);
+      openLegBrief(legId);
     });
+  });
+
+  // Leg-nav strip on the brief — Previous / Next leg in the same trip.
+  // Available only when briefSource === "trip" so we have a trip context.
+  document.querySelectorAll('[data-action="prev-leg"]').forEach((btn) => {
+    btn.addEventListener("click", () => navigateLeg(-1));
+  });
+  document.querySelectorAll('[data-action="next-leg"]').forEach((btn) => {
+    btn.addEventListener("click", () => navigateLeg(+1));
   });
 
   // === Brief screen ===
@@ -344,6 +349,69 @@ function attachEvents() {
     });
   });
 }
+
+// ---- Leg navigation helpers ----------------------------------------------
+
+function openLegBrief(legId) {
+  const trip = getTrip(state.currentTripId);
+  if (!trip) return;
+  const leg = trip.legs.find((l) => l.id === legId);
+  if (!leg) return;
+  setState({
+    view: "brief",
+    departure: leg.dep,
+    destination: leg.dest,
+    aircraftKey: trip.aircraftId,
+    briefSource: "trip",
+    loading: true,
+    error: null,
+    data: null,
+  });
+  loadBrief(leg.dep, leg.dest);
+}
+
+// Move to prev (-1) or next (+1) leg in the current trip. Used by the
+// leg-nav strip on the brief screen.
+function navigateLeg(delta) {
+  if (state.briefSource !== "trip") return;
+  const trip = getTrip(state.currentTripId);
+  if (!trip || !trip.legs.length) return;
+  // Find current leg by matching dep+dest+date — the brief doesn't track
+  // legId directly. (If we want to be more robust later, store currentLegId
+  // in state. For now dep+dest+date is unique per trip.)
+  const currentIdx = trip.legs.findIndex(
+    (l) => l.dep === state.departure && l.dest === state.destination
+  );
+  if (currentIdx < 0) return;
+  const targetIdx = currentIdx + delta;
+  if (targetIdx < 0 || targetIdx >= trip.legs.length) return;
+  openLegBrief(trip.legs[targetIdx].id);
+}
+
+// ---- Cockpit mode (high-contrast theme for bright daylight) --------------
+// Persisted in localStorage. Toggle button lives in index.html (outside
+// the #app re-render scope) so its click handler is wired once at boot.
+
+const COCKPIT_KEY = "global-pilot:cockpit";
+
+function setCockpitMode(on) {
+  document.body.classList.toggle("cockpit", on);
+  const btn = document.getElementById("cockpit-toggle");
+  if (btn) btn.textContent = on ? "☾ Standard" : "☀ Cockpit";
+  try { localStorage.setItem(COCKPIT_KEY, on ? "1" : "0"); } catch (e) { /* private mode — fine */ }
+}
+
+(function initCockpitMode() {
+  let initial = false;
+  try { initial = localStorage.getItem(COCKPIT_KEY) === "1"; } catch (e) {}
+  setCockpitMode(initial);
+  const btn = document.getElementById("cockpit-toggle");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      setCockpitMode(!document.body.classList.contains("cockpit"));
+    });
+  }
+})();
 
 // ---- Boot -----------------------------------------------------------------
 render();

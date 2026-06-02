@@ -10,6 +10,7 @@
 
 import { DEPARTURES } from "../data/airports.js";
 import { AIRCRAFT } from "../data/aircraft.js";
+import { getTrip } from "../store/trips.js";
 import { pressureAltitude, densityAltitude } from "../calc/atmosphere.js";
 import { crosswindComponent, preferredRunway } from "../calc/wind.js";
 import { distanceNm, nearestFBStation, isInConus } from "../calc/geo.js";
@@ -22,6 +23,36 @@ import {
   formatWind, formatFBWind, formatAltitude, formatCeiling, formatObsTime,
 } from "./format.js";
 import { escText, escAttr } from "./escape.js";
+
+// ---- Leg-nav strip (when brief was opened from a trip leg) ----------------
+// Lets the pilot jump between legs in the same trip without going back to
+// the trip editor. Returns empty string for non-trip briefs.
+
+function renderLegNav(state) {
+  if (state.briefSource !== "trip" || !state.currentTripId) return "";
+  const trip = getTrip(state.currentTripId);
+  if (!trip || !trip.legs.length) return "";
+  const idx = trip.legs.findIndex(
+    (l) => l.dep === state.departure && l.dest === state.destination
+  );
+  if (idx < 0) return "";
+
+  const total = trip.legs.length;
+  const hasPrev = idx > 0;
+  const hasNext = idx < total - 1;
+  const cur = trip.legs[idx];
+
+  return `
+    <div class="leg-nav">
+      <button class="leg-nav-btn" data-action="prev-leg" ${hasPrev ? "" : "disabled"} aria-label="Previous leg">← Prev</button>
+      <div style="text-align:center;flex:1;">
+        <div class="leg-nav-position">Leg ${idx + 1} of ${total} · ${escText(trip.name)}</div>
+        <div class="leg-nav-current">${escText(cur.dep)} → ${escText(cur.dest)} · ${escText(cur.date)}</div>
+      </div>
+      <button class="leg-nav-btn" data-action="next-leg" ${hasNext ? "" : "disabled"} aria-label="Next leg">Next →</button>
+    </div>
+  `;
+}
 
 // ---- Departure airport synthesis -------------------------------------------
 // For non-Tahoe departures (any leg of a trip — e.g. EGKB, LEPA), we build
@@ -137,6 +168,8 @@ export function renderBrief(state) {
           <button class="ghost-btn" data-action="print">Print / PDF</button>
         </div>
       </header>
+
+      ${renderLegNav(state)}
 
       <div id="route-map"
            data-dep-lat="${escAttr(dep.lat)}" data-dep-lon="${escAttr(dep.lon)}"
