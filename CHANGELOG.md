@@ -4,6 +4,20 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed (Day 4 — P0 crash + Europe coverage)
+- **Crash on non-Tahoe trip-leg briefs.** `src/ui/brief.js` was dereferencing `DEPARTURES[state.departure].fbStation` directly inside the cruise renderer. For any leg whose departure isn't one of the six hardcoded Tahoe fields (i.e., every European leg of the user's real trip), this threw `TypeError` and the brief blanked. Fixed by passing the already-resolved `dep` object to `renderCruiseSection` and reading `dep.fbStation`.
+
+### Added (Day 4)
+- **`src/ui/escape.js`** — single-source-of-truth `escText` and `escAttr`. Replaces the local copies that lived in `trips.js`. Applied across `brief.js`, `trips.js`, and `map.js` to every interpolation of NOAA-sourced strings (raw METAR, raw TAF, airport names, AIRMET hazard/severity/type) plus all `data-*` attributes. Removes a wide XSS surface flagged by the security review.
+- **CSP `<meta>` tag** in `index.html` — defense in depth. Browser refuses to execute scripts from anywhere except this origin + `unpkg.com` (Leaflet). Lists exactly which proxy hosts are allowed in `connect-src`.
+- **`isInConus(lat, lon)`** in `src/calc/geo.js` — CONUS bounding-box check used to gate which NOAA AWC feeds apply to a given leg.
+- **International-leg coverage banner** — when either departure or destination is outside CONUS, a prominent "supplement only" banner renders above the phase sections, the diagnostics panel marks the CONUS-only feeds (AIRMETs, winds aloft) as "n/a — outside CONUS," and the cruise/climbout sections show "use ForeFlight" instead of em-dashes for the winds-aloft block. Eliminates the "green check but actually missing critical data" failure mode flagged by both the aviation and tech-lead reviews.
+
+### Changed (Day 4)
+- `synthesizeDep()` in `brief.js` now returns `fbStation: null` when the airport is outside CONUS, instead of pointing at the nearest US FB station thousands of miles away.
+- `renderCruiseSection` signature: takes `dep` as a parameter (was reading the unresolved `DEPARTURES[state.departure]` directly).
+- `renderDiagnostics` signature: takes an `outOfCoverage` flag so the panel can label CONUS-only feeds as `n/a — outside CONUS` instead of `empty`.
+
 ### Added (Day 3 — Trip Planner)
 - **Trip planner screens** (`src/ui/trips.js`) — list view and editor view for multi-leg trips. Trips persist in `localStorage` under `global-pilot:trips:v1`. Each trip has name, aircraft, date range, and an ordered list of legs.
 - **`src/store/trips.js`** — CRUD helpers (`getAllTrips`, `getTrip`, `saveTrip`, `deleteTrip`) plus `exportTripJson` / `importTripJson` for sharing trips as `.json` files (the "sneakernet" path). Every save runs `assertTrip` so malformed data is caught loudly at write time.
