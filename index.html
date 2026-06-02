@@ -298,10 +298,18 @@
 
     /* Legs list inside a trip */
     .legs-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+    /* Outer leg-row is a column wrapper holding the compact head and an
+       expandable Operations <details>. Background/border live here so the
+       whole leg looks like one card. */
     .leg-row {
+      display: flex; flex-direction: column;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+      overflow: hidden;
+    }
+    .leg-row-head {
       display: grid; grid-template-columns: 40px 1fr auto; align-items: center;
       gap: 16px; padding: 12px 14px;
-      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
     }
     .leg-seq {
       width: 30px; height: 30px; border-radius: 50%;
@@ -312,6 +320,56 @@
     .leg-route-date { color: var(--muted); font-size: 12px; margin-top: 2px; }
     .leg-actions { display: flex; gap: 6px; }
     .leg-delete { padding: 6px 10px !important; font-size: 16px !important; line-height: 1; }
+
+    /* The collapsible operations section under each leg's compact head. */
+    .leg-ops { border-top: 1px solid var(--line); }
+    .leg-ops summary {
+      cursor: pointer; list-style: none;
+      padding: 10px 14px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); font-weight: 600;
+    }
+    .leg-ops summary::-webkit-details-marker { display: none; }
+    .leg-ops summary::before {
+      content: "▸"; display: inline-block; margin-right: 8px;
+      transition: transform 0.15s; color: var(--accent);
+    }
+    .leg-ops[open] summary::before { transform: rotate(90deg); }
+    .leg-ops summary:hover { color: var(--accent); }
+    .leg-ops[open] summary { border-bottom: 1px solid var(--line); }
+    .leg-ops-empty { padding: 14px; color: var(--muted); font-style: italic; font-size: 13px; }
+    .leg-ops-content {
+      padding: 14px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      background: var(--bg);
+    }
+    .ops-block h5 {
+      margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent); font-weight: 700;
+    }
+    .ops-block dl {
+      margin: 0; font-size: 13px;
+      display: grid; grid-template-columns: auto 1fr; gap: 4px 12px;
+    }
+    .ops-block dt { color: var(--muted); }
+    .ops-block dd { margin: 0; word-break: break-word; }
+    .ops-block .ops-notes {
+      color: var(--muted); font-size: 12px; margin-top: 6px;
+      line-height: 1.45; padding-top: 6px; border-top: 1px dashed var(--line);
+    }
+    .ops-block-full { grid-column: 1 / -1; }
+    .ops-block-full > div { font-size: 13px; line-height: 1.5; }
+    .ops-status {
+      display: inline-block; padding: 2px 8px; border-radius: 3px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .ops-status.confirmed, .ops-status.filed, .ops-status.approved { background: var(--ok-bg); color: var(--ok); }
+    .ops-status.requested, .ops-status.draft, .ops-status.pending  { background: var(--alert-bg); color: var(--caution); }
+    .ops-status.none                                               { background: var(--bg); color: var(--muted); }
+
+    /* Trips list header action group (Load Europe 2026 button next to + New trip) */
+    .trips-header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
     /* Add-a-leg form (the box at the bottom of the editor) */
     .leg-form {
@@ -336,8 +394,9 @@
     }
     @media (max-width: 600px) {
       .leg-form-row { grid-template-columns: 1fr; }
-      .leg-row { grid-template-columns: 30px 1fr; }
-      .leg-row .leg-actions { grid-column: 1 / -1; justify-content: flex-end; }
+      .leg-row-head { grid-template-columns: 30px 1fr; }
+      .leg-row-head .leg-actions { grid-column: 1 / -1; justify-content: flex-end; }
+      .leg-ops-content { grid-template-columns: 1fr; }
     }
 
     /* Brief screen */

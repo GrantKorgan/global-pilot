@@ -38,6 +38,7 @@ import { loadPrefs, savePrefs } from "./store/prefs.js";
 import { getTrip, saveTrip, deleteTrip } from "./store/trips.js";
 import { newTrip, newLeg } from "./data/types.js";
 import { AIRCRAFT } from "./data/aircraft.js";
+import { buildEurope2026Trip, EUROPE_2026_TRIP_ID } from "./data/fixtures/europe-2026.js";
 
 // ---- State ----------------------------------------------------------------
 
@@ -147,6 +148,26 @@ function attachEvents() {
   document.querySelectorAll('[data-action="open-trip"]').forEach((btn) => {
     btn.addEventListener("click", () => {
       setState({ view: "tripEdit", currentTripId: btn.dataset.tripId });
+    });
+  });
+
+  // Seed the canonical Europe 2026 trip (24 legs, idempotent).
+  // First click loads it and jumps to the editor; subsequent clicks would
+  // never happen since the button hides once the trip exists.
+  document.querySelectorAll('[data-action="load-europe-2026"]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (getTrip(EUROPE_2026_TRIP_ID)) {
+        // Already loaded — just open it.
+        setState({ view: "tripEdit", currentTripId: EUROPE_2026_TRIP_ID });
+        return;
+      }
+      try {
+        const trip = buildEurope2026Trip();
+        saveTrip(trip);
+        setState({ view: "tripEdit", currentTripId: trip.id });
+      } catch (err) {
+        alert("Couldn't load the Europe 2026 trip: " + err.message);
+      }
     });
   });
 
