@@ -4,6 +4,16 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 5 — The Real Trip)
+- **`src/data/fixtures/europe-2026.js`** — the full N2AK Reno → Europe → Reno trip as a structured `Trip` object. 24 legs (9 eastbound + 8 intra-Europe + 7 westbound), sourced from `N2AK_master_itinerary_consolidated.md`. Intra-Europe legs carry full operational data: FBO contacts with phone/email, slot status with booking window, PPR status, Schengen/UK GAR/eAPIS requirements with state, fuel uplift target with rationale, overnight + ramp fee estimates, flight-plan filing window, and leg-specific notes. Ferry legs carry the lighter set Air Journey controls.
+- **"Load Europe 2026 trip" button** on the Trips list screen. One click seeds all 24 legs + ops data into localStorage and jumps to the editor. Idempotent — once the trip exists, the button hides; subsequent clicks would just re-open the existing trip. The user picked "App is canonical" yesterday; this is how the canonical version arrives.
+- **Operations expander per leg** — each leg row now wraps a `<details class="leg-ops">` showing crew · FBOs · slot · PPR · customs · fuel · overnight · filing · notes. Empty fields are suppressed; ferry legs with sparse data show only what's populated. New `renderLegOps()` + `renderStatusBlock()` helpers in `src/ui/trips.js`.
+- **`ops-status` pill component** in CSS for slot / PPR / GAR / eAPIS status — confirmed (green), requested / draft / pending (amber), none (muted).
+
+### Changed
+- `.leg-row` restructured from a 3-column grid to a flex column wrapping `.leg-row-head` (the existing compact route line) and `.leg-ops` (the new expander). Visual: each leg is now one card containing both the compact header and the collapsible ops panel.
+- Mobile breakpoint adjusted accordingly — `.leg-row-head` becomes 2-column on narrow screens, and `.leg-ops-content` collapses to single column.
+
 ### Fixed (Day 4 — P0 crash + Europe coverage)
 - **Crash on non-Tahoe trip-leg briefs.** `src/ui/brief.js` was dereferencing `DEPARTURES[state.departure].fbStation` directly inside the cruise renderer. For any leg whose departure isn't one of the six hardcoded Tahoe fields (i.e., every European leg of the user's real trip), this threw `TypeError` and the brief blanked. Fixed by passing the already-resolved `dep` object to `renderCruiseSection` and reading `dep.fbStation`.
 
