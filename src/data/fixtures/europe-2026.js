@@ -279,7 +279,7 @@ export function buildEurope2026Trip() {
   return {
     id: EUROPE_2026_TRIP_ID,
     name: "Reno → Europe → Reno · Summer 2026",
-    aircraftId: "turbine",  // SF50 G2+ approximated as "Turbine single" tier until Day 7's real aircraft profile lands
+    aircraftId: "sf50_g2plus",  // Real SF50 G2+ profile — Day 7 added perf data + takeoff verdict
     dateStart: "2026-06-12",
     dateEnd: "2026-07-28",
     schemaVersion: 1,

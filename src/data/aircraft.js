@@ -1,14 +1,25 @@
 // src/data/aircraft.js
 // ---------------------------------------------------------------------------
-// Aircraft category tiers. The `cruiseFt` value is the default cruise altitude
-// used to pick which winds-aloft band to highlight.
+// Aircraft selection — `label` shows in the dropdown, `cruiseFt` picks the
+// winds-aloft band, `perfKey` (optional) points at a full performance
+// profile module for richer per-leg metrics (takeoff distance, etc.).
 //
-// Day 4 of the v3 plan replaces this generic tier system with full aircraft
-// profiles (POH-sourced perf data for the SF50 G2+ first). For now, the
-// tiers preserve v2 behavior.
+// SF50 G2+ is the first aircraft with a full profile — see src/data/sf50.js
+// and src/calc/perf.js. The other entries are generic tier categories
+// preserved from v2; they don't yet have perf data.
 // ---------------------------------------------------------------------------
 
+import { SF50_G2_PLUS } from "./sf50.js";
+
 export const AIRCRAFT = {
+  // Specific aircraft profiles — full perf data available.
+  sf50_g2plus: {
+    label: SF50_G2_PLUS.label,
+    cruiseFt: SF50_G2_PLUS.cruiseFt,
+    perfKey: "sf50_g2plus",
+  },
+
+  // Generic tiers — used when the user hasn't selected a specific profile.
   pistonNA: { label: "Piston single — normally aspirated",                  cruiseFt:  9000 },
   pistonTC: { label: "Piston — turbocharged",                                cruiseFt: 16000 },
   turbine:  { label: "Turbine single (Vision Jet / TBM / Meridian)",         cruiseFt: 24000 },

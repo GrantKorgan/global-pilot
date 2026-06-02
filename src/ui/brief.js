@@ -14,6 +14,7 @@ import { getTrip } from "../store/trips.js";
 import { pressureAltitude, densityAltitude } from "../calc/atmosphere.js";
 import { crosswindComponent, preferredRunway } from "../calc/wind.js";
 import { distanceNm, nearestFBStation, isInConus } from "../calc/geo.js";
+import { sf50TakeoffDistanceFt, sf50TakeoffVerdict } from "../calc/perf.js";
 import { parseFB, closestFBAltitude } from "../wx/fb.js";
 import { PROXY_INFO } from "../wx/proxy.js";
 import {
@@ -269,12 +270,27 @@ function renderRunwaySection(state, dep, depMetar) {
   const hasRunwayData = dep.runways && dep.runways.length > 0;
   const preferred = hasRunwayData ? preferredRunway(wDir, wSpd, dep.runways) : null;
 
+  // SF50 G2+ takeoff verdict: required distance vs longest available runway.
+  // Only computed when the user picked the specific SF50 profile (perfKey).
+  // For non-Tahoe legs we may not have runway lengths — verdict downgrades
+  // to "unknown" and tells the pilot to verify on AirNav.
+  const aircraft = AIRCRAFT[state.aircraftKey];
+  const isSF50 = aircraft && aircraft.perfKey === "sf50_g2plus";
+  const longestRunwayFt = hasRunwayData
+    ? dep.runways.reduce((m, r) => (r.lengthFt && r.lengthFt > m ? r.lengthFt : m), 0) || null
+    : null;
+  const sf50ToReq = isSF50 ? sf50TakeoffDistanceFt(DA) : null;
+  const sf50Verdict = isSF50
+    ? sf50TakeoffVerdict({ requiredFt: sf50ToReq, longestRunwayFt, densityAltFt: DA })
+    : null;
+
   const daBadge = DA == null ? "" : (DA > 8000 ? "high" : DA > 6000 ? "mid" : "ok");
 
   const runwayRows = hasRunwayData
     ? dep.runways.map((r) => {
         const xw = crosswindComponent(wDir, wSpd, r.hdg);
-        return `<tr><td>${r.id}</td><td>${xw} kt</td></tr>`;
+        const len = r.lengthFt ? `${r.lengthFt.toLocaleString()} ft` : "—";
+        return `<tr><td>${r.id}</td><td>${len}</td><td>${xw} kt</td></tr>`;
       }).join("")
     : "";
 
@@ -321,19 +337,70 @@ function renderRunwaySection(state, dep, depMetar) {
           <div class="metric-label">Flight category</div>
           <div class="metric-value badge-${cat.toLowerCase()}">${cat || "—"}</div>
         </div>
+        ${renderSf50TakeoffTile(sf50ToReq, sf50Verdict)}
       </div>
       ${hasRunwayData ? `
         <table>
-          <thead><tr><th>Runway</th><th>Crosswind component</th></tr></thead>
+          <thead><tr><th>Runway</th><th>Length</th><th>Crosswind component</th></tr></thead>
           <tbody>${runwayRows}</tbody>
         </table>
       ` : ""}
+      ${renderSf50VerdictAlert(sf50ToReq, sf50Verdict)}
       ${daAlert}
       ${gustAlert}
       ${wxFlags.length ? `<div class="alert">⚠ Significant weather at field: ${wxFlags.join(", ")}</div>` : ""}
       <details class="raw"><summary>Raw METAR</summary><pre>${escText(depMetar.rawOb || "")}</pre></details>
     </section>
   `;
+}
+
+// ---- SF50 takeoff verdict (phase-1 supplement) ----------------------------
+// Tile inside the phase-grid showing required takeoff distance + margin.
+// Returns "" when the user isn't on the SF50 profile.
+
+function renderSf50TakeoffTile(requiredFt, v) {
+  if (requiredFt == null || !v) return "";
+  // Badge style maps verdict status to the existing badge classes used by
+  // the DA tile (ok / mid / high). Aligns colors with the rest of phase-1.
+  const badgeClass =
+    v.status === "ok"    ? "ok"
+  : v.status === "tight" ? "mid"
+  : v.status === "warn"  ? "high"
+  :                        "ok"; // "unknown" — neutral
+  const sub =
+    v.longestRunwayFt != null && v.marginFt != null
+      ? `Longest rwy ${v.longestRunwayFt.toLocaleString()} ft · margin ${v.marginFt >= 0 ? "+" : ""}${v.marginFt.toLocaleString()} ft`
+      : `Verify against runway length on AirNav`;
+  return `
+    <div class="metric">
+      <div class="metric-label">SF50 takeoff (50' obstacle)</div>
+      <div class="metric-value badge-${badgeClass}">${requiredFt.toLocaleString()} ft</div>
+      <div class="metric-sub">${sub}</div>
+    </div>
+  `;
+}
+
+// Alert below the runway table — shown for tight margin, hard warning, or
+// off-chart DA. Stays silent when we can't compute a verdict (e.g. unknown
+// runway length AND DA is in the well-charted regime).
+
+function renderSf50VerdictAlert(requiredFt, v) {
+  if (requiredFt == null || !v) return "";
+  if (v.status === "ok") return "";
+  if (v.status === "unknown") {
+    // Quiet hint, not a danger banner.
+    return `<div class="alert">SF50 needs ${requiredFt.toLocaleString()} ft over a 50' obstacle at this DA. Cross-check runway length on AirNav before departure.</div>`;
+  }
+  if (v.daWarning && v.status === "warn") {
+    return `<div class="alert danger">⚠ Density altitude ${v.longestRunwayFt != null ? `(${v.marginFt >= 0 ? "margin " + v.marginFt.toLocaleString() + " ft" : "INSUFFICIENT margin"}) ` : ""}is off the well-charted region of the SF50 takeoff chart. Verify directly against the POH performance section before flight.</div>`;
+  }
+  if (v.status === "warn") {
+    return `<div class="alert danger">⚠ SF50 takeoff distance ${requiredFt.toLocaleString()} ft exceeds usable margin against the longest runway (${v.longestRunwayFt.toLocaleString()} ft) — margin only ${v.marginFt.toLocaleString()} ft. Recompute with POH. Consider weight reduction or different runway/airport.</div>`;
+  }
+  if (v.status === "tight") {
+    return `<div class="alert">⚠ Tight margin: SF50 needs ${requiredFt.toLocaleString()} ft, longest runway is ${v.longestRunwayFt.toLocaleString()} ft (margin ${v.marginFt.toLocaleString()} ft). OK at MTOW + standard conditions, but no buffer for a contaminated runway or off-nominal departure.</div>`;
+  }
+  return "";
 }
 
 // ---- Phase 2: Climbout -----------------------------------------------------

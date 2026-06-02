@@ -14,6 +14,7 @@
 // runways   = each runway's lower-numbered heading in degrees magnetic.
 //             The reciprocal (opposite end) is hdg+180. For "16R/34L" we
 //             store hdg=167 because runway 16 points 167°.
+//             `lengthFt` is total runway length (used for SF50 takeoff verdict).
 // lat/lon   = field location (used for the route map).
 // fbStation = the 3-letter station code NOAA uses on the FB chart.
 export const DEPARTURES = {
@@ -22,9 +23,9 @@ export const DEPARTURES = {
     elev: 4415,
     lat: 39.4991, lon: -119.7681,
     runways: [
-      { id: "16R/34L", hdg: 167 },
-      { id: "16L/34R", hdg: 167 },
-      { id: "07/25",   hdg:  64 },
+      { id: "16R/34L", hdg: 167, lengthFt: 11002 },
+      { id: "16L/34R", hdg: 167, lengthFt:  9000 },
+      { id: "07/25",   hdg:  64, lengthFt:  6102 },
     ],
     fbStation: "RNO",
   },
@@ -33,8 +34,8 @@ export const DEPARTURES = {
     elev: 5901,
     lat: 39.3200, lon: -120.1397,
     runways: [
-      { id: "11/29", hdg: 110 },
-      { id: "02/20", hdg:  20 },
+      { id: "11/29", hdg: 110, lengthFt: 7001 },
+      { id: "02/20", hdg:  20, lengthFt: 4650 },
     ],
     fbStation: "RNO",
   },
@@ -43,8 +44,8 @@ export const DEPARTURES = {
     elev: 5050,
     lat: 39.6669, lon: -119.8757,
     runways: [
-      { id: "08/26", hdg:  80 },
-      { id: "14/32", hdg: 140 },
+      { id: "08/26", hdg:  80, lengthFt: 9000 },
+      { id: "14/32", hdg: 140, lengthFt: 7605 },
     ],
     fbStation: "RNO",
   },
@@ -53,7 +54,7 @@ export const DEPARTURES = {
     elev: 4697,
     lat: 39.1922, lon: -119.7342,
     runways: [
-      { id: "09/27", hdg:  90 },
+      { id: "09/27", hdg:  90, lengthFt: 6099 },
     ],
     fbStation: "RNO",
   },
@@ -62,8 +63,8 @@ export const DEPARTURES = {
     elev: 4722,
     lat: 38.9978, lon: -119.7511,
     runways: [
-      { id: "16/34", hdg: 160 },
-      { id: "12/30", hdg: 120 },
+      { id: "16/34", hdg: 160, lengthFt: 7400 },
+      { id: "12/30", hdg: 120, lengthFt: 5300 },
     ],
     fbStation: "RNO",
   },
@@ -72,7 +73,7 @@ export const DEPARTURES = {
     elev: 6269,
     lat: 38.8939, lon: -119.9953,
     runways: [
-      { id: "18/36", hdg: 180 },
+      { id: "18/36", hdg: 180, lengthFt: 8544 },
     ],
     fbStation: "TVL",
   },

@@ -4,6 +4,20 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 7 — SF50 G2+ takeoff verdict)
+- **`src/data/sf50.js`** — Cirrus Vision Jet SF50 G2+ (N2AK) performance profile. MTOW 6,000 lb, service ceiling FL310, cruise FL280, takeoff distance over a 50' obstacle indexed by density altitude (POH-derived piecewise-linear table). Margin thresholds for the verdict (ok ≥ 1,500 ft / tight ≥ 500 ft / warn < 500 ft) and an off-chart DA cutoff (10,000 ft).
+- **`src/calc/perf.js`** — pure functions `sf50TakeoffDistanceFt(da)` and `sf50TakeoffVerdict({ requiredFt, longestRunwayFt, densityAltFt })`. Verdict status: `ok` / `tight` / `warn` / `unknown` (when runway length unavailable, e.g. non-Tahoe legs).
+- **SF50 entry in `src/data/aircraft.js`** — `sf50_g2plus` key with `perfKey` pointer to the profile. Placed first so new users default to it. Generic tiers preserved for everyone else.
+- **Phase-1 brief now shows SF50 verdict** — when aircraft = SF50, the runway phase-grid grows a 5th tile: required takeoff distance over a 50' obstacle at current DA, colored ok/mid/high by margin, sub-line shows longest runway + margin or "verify on AirNav" if runway length unknown. Below the runway table an alert (tight margin / hard warning / off-chart DA) appears when the verdict isn't `ok`. Runway crosswind table grows a Length column.
+- **Runway lengths added to all six Tahoe `DEPARTURES`** — KRNO (11,002 / 9,000 / 6,102), KTRK (7,001 / 4,650), KRTS (9,000 / 7,605), KCXP (6,099), KMEV (7,400 / 5,300), KTVL (8,544). Needed for the SF50 verdict to compute real margins at home base.
+- **Europe 2026 fixture** switched `aircraftId: "turbine"` → `"sf50_g2plus"` so the 24 real-trip legs all brief against the SF50 profile.
+
+### Added (Day 6.5 — Cafe finder Layer 1)
+- **`src/data/airports-food.js`** — broader "food on field" list, separate from `CAFES`. 40+ hand-curated US fly-in airports across NorCal, SoCal, PacNW, Midwest, Northeast, Mid-Atlantic, Southeast, South Central, and Mountain West. Lighter schema than CAFES (no full blurb — just airport, city, region, short note, source tag). Designed for auto-import from FAA NASR.
+- **`scripts/import-nasr.mjs`** — monthly importer that downloads the FAA NASR ZIP, parses APT.txt's E70 services subrecord for `FOOD` / `RESTAURANT` flags, filters to lower-48, and merges with curated entries (curated wins on conflict, never overwritten). Documented column offsets to verify against `Layout_Data/APT-RECORDS.pdf` on first successful run. Supports `NASR_LOCAL=<path>` env var for manual ZIP override when the FAA's bot wall 503s a dev laptop.
+- **`.github/workflows/refresh-airports.yml`** — GH Action that runs the importer on the 1st of each month, opens a PR if `airports-food.js` changes. Manual trigger via `workflow_dispatch`. Uses peter-evans/create-pull-request so changes go through review.
+- **Cafes UI now renders two sections** — "Featured cafes" (the full-blurb tier) and "More airports with food on field" (Layer 1 lighter cards). One search box filters both simultaneously. Footer documents the NASR auto-refresh path.
+
 ### Added (Day 6 — iPad polish)
 - **Wake lock** (`src/ui/wakelock.js`) — uses the Screen Wake Lock API to keep the iPad screen on while a brief is open. Acquired in `render()` when `state.view === "brief"` and data is loaded; released on any other view. Handles `visibilitychange` so it re-acquires when the pilot switches to ForeFlight and back. Fails silently on unsupported browsers.
 - **Leg-nav strip on the brief** — when the brief was opened from a trip leg (`briefSource === "trip"`), a strip at the top of the brief shows "Leg N of M · {trip name}" with `← Prev` and `Next →` buttons. Disabled at endpoints. Lets the pilot jump between the 24 Europe legs without bouncing back to the trip editor.
