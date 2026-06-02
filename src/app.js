@@ -31,7 +31,7 @@
 import { renderWelcome  } from "./ui/welcome.js";
 import { renderSetup    } from "./ui/setup.js";
 import { renderBrief    } from "./ui/brief.js";
-import { renderTrips, renderTripEdit } from "./ui/trips.js";
+import { renderTrips, renderTripEdit, renderTripPrint } from "./ui/trips.js";
 import { renderCafes  } from "./ui/cafes.js";
 import { acquireWakeLock, releaseWakeLock } from "./ui/wakelock.js";
 import { initRouteMap   } from "./ui/map.js";
@@ -47,7 +47,7 @@ import { buildEurope2026Trip, EUROPE_2026_TRIP_ID } from "./data/fixtures/europe
 const prefs = loadPrefs();
 
 let state = {
-  view: "welcome",        // welcome | setup | brief | trips | tripEdit | cafes
+  view: "welcome",        // welcome | setup | brief | trips | tripEdit | tripPrint | cafes
   // Quick-brief mode:
   departure: null,        // ICAO of selected departure
   aircraftKey: prefs.aircraftKey || null,
@@ -76,6 +76,7 @@ function render() {
   else if (state.view === "brief")    app.innerHTML = renderBrief(state);
   else if (state.view === "trips")    app.innerHTML = renderTrips(state);
   else if (state.view === "tripEdit") app.innerHTML = renderTripEdit(state);
+  else if (state.view === "tripPrint")app.innerHTML = renderTripPrint(state);
   else if (state.view === "cafes")    app.innerHTML = renderCafes(state);
   attachEvents();
   if (state.view === "brief" && state.data && !state.loading) initRouteMap();
@@ -179,6 +180,20 @@ function attachEvents() {
   document.querySelectorAll('[data-action="open-trip"]').forEach((btn) => {
     btn.addEventListener("click", () => {
       setState({ view: "tripEdit", currentTripId: btn.dataset.tripId });
+    });
+  });
+
+  // Jump to the trip-print view (cover + per-leg ops binder).
+  document.querySelectorAll('[data-action="go-to-trip-print"]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setState({ view: "tripPrint", currentTripId: btn.dataset.tripId });
+    });
+  });
+
+  // From the trip-print view, return to the editor.
+  document.querySelectorAll('[data-action="back-to-trip-edit"]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setState({ view: "tripEdit" });
     });
   });
 

@@ -637,11 +637,69 @@
     }
 
     /* =================================================================
+       TRIP PRINT — multi-page operations binder for an entire trip.
+       Cover page + one page per leg. Reuses the legs editor's ops blocks.
+       On-screen we render with dashed separators so the pilot can scroll
+       through and verify all legs are present. Print CSS adds page breaks
+       and hides the on-screen-only chrome.
+       ================================================================= */
+    .trip-print-screen { max-width: 880px; }
+    .trip-print-actions {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 24px;
+    }
+    .trip-print-page {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+      padding: 32px 40px; margin-bottom: 24px;
+      border-left: 4px solid var(--accent);
+    }
+    .trip-print-cover { border-left-color: var(--ok); }
+    .trip-print-eyebrow {
+      margin: 0 0 4px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); font-weight: 600;
+    }
+    .trip-print-cover h1 { margin: 0 0 6px; font-size: 26px; }
+    .trip-print-leg h2   { margin: 0 0 6px; font-size: 22px; }
+    .trip-print-sub      { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+    .trip-print-route-list {
+      width: 100%; border-collapse: collapse; margin-top: 12px;
+      font-size: 14px;
+    }
+    .trip-print-route-list th,
+    .trip-print-route-list td {
+      text-align: left; padding: 6px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .trip-print-route-list th {
+      color: var(--muted); font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.06em; font-weight: 600;
+    }
+    .trip-print-route-num  { font-variant-numeric: tabular-nums; color: var(--muted); width: 32px; }
+    .trip-print-route-date { font-variant-numeric: tabular-nums; width: 110px; }
+    .trip-print-route-icao { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
+    .trip-print-notes {
+      margin-top: 24px; padding: 16px; border-radius: 6px;
+      background: var(--bg); border-left: 3px solid var(--muted);
+    }
+    .trip-print-notes h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .trip-print-notes p  { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+    .trip-print-footer {
+      margin-top: 24px; font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--line); padding-top: 10px;
+    }
+    .trip-print-leg-body .leg-ops-content {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .trip-print-leg-body .ops-block-full { grid-column: 1 / -1; }
+
+    /* =================================================================
        PRINT — turns the brief into a clean kneeboard PDF when you hit
        Cmd+P (or click the Print button). Hides interactive UI, forces
        white background, breaks pages between phases.
        ================================================================= */
     @media print {
+      @page { margin: 0.5in; }
       :root {
         --bg: #ffffff;
         --surface: #ffffff;
@@ -664,6 +722,21 @@
       h2 { font-size: 14px; }
       .metric-value { font-size: 16px; }
       .diagnostics { display: none; }
+
+      /* Trip-print page-break rules — one physical page per section. */
+      .trip-print-actions { display: none !important; }
+      .trip-print-page {
+        border: none; border-left: none; border-radius: 0;
+        padding: 0; margin: 0;
+        page-break-after: always; page-break-inside: avoid;
+      }
+      .trip-print-page:last-child { page-break-after: auto; }
+      .trip-print-leg-body .leg-ops-content {
+        grid-template-columns: 1fr 1fr; /* fixed 2-col grid on paper */
+      }
+      /* In the binder, force all leg-ops <details> open and hide their summary. */
+      .trip-print-leg-body details.leg-ops { display: block; }
+      .trip-print-leg-body details.leg-ops > summary { display: none; }
     }
   </style>
 </head>

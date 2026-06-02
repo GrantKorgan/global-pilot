@@ -115,6 +115,7 @@ export function renderTripEdit(state) {
         </div>
         <div class="trip-form-actions">
           <button type="button" class="ghost-btn" data-action="delete-trip" data-trip-id="${escAttr(trip.id)}">Delete trip</button>
+          <button type="button" class="ghost-btn" data-action="go-to-trip-print" data-trip-id="${escAttr(trip.id)}">Print trip plan →</button>
           <button type="submit" class="primary-btn" style="margin-top:0;">Save trip details</button>
         </div>
       </form>
@@ -273,6 +274,120 @@ function renderStatusBlock(label, statusObj) {
   if (statusObj.ref)    rows.push(`<dt>Ref</dt><dd>${escText(statusObj.ref)}</dd>`);
   const notes = statusObj.notes ? `<div class="ops-notes">${escText(statusObj.notes)}</div>` : "";
   return `<div class="ops-block"><h5>${escText(label)}</h5><dl>${rows.join("")}</dl>${notes}</div>`;
+}
+
+// =============================================================================
+// Trip print view — the operations binder.
+//
+// One cover page + one page per leg with the ops snapshot (crew, FBOs, slot,
+// PPR, customs, fuel, overnight, filing, notes). Reuses `renderLegOps` so
+// whatever shows in the editor also lands in the binder.
+//
+// Why no weather snapshot:
+//   For a 6-week trip, weather captured today is useless by leg 5. Day-of
+//   weather lives in the brief view (already has its own print CSS — pilot
+//   can print THAT for the kneeboard at takeoff). The binder is the
+//   pre-flight artifact: ops, FBOs, customs, fuel, notes. Stable.
+//
+// User workflow:
+//   Trip editor → "Print trip plan →"
+//     ↓
+//   On-screen preview with all legs in one document
+//     ↓
+//   Pilot clicks "Print / Save as PDF →" (or Cmd+P)
+//     ↓
+//   Browser native print dialog — Save as PDF → done.
+//
+// The print CSS in index.html hides the buttons + the on-screen page-break
+// dashes and uses `page-break-after: always` so each section gets its own
+// physical page.
+// =============================================================================
+
+export function renderTripPrint(state) {
+  const trip = getTrip(state.currentTripId);
+  if (!trip) {
+    return `
+      <div class="screen">
+        <button class="back-btn" data-action="back-to-trips">← trips</button>
+        <div class="error-box"><h2>Trip not found</h2></div>
+      </div>
+    `;
+  }
+
+  const ac = AIRCRAFT[trip.aircraftId];
+  const acLabel = ac ? ac.label : trip.aircraftId;
+  const generatedAt = new Date().toLocaleString();
+  const dateRange = trip.dateStart === trip.dateEnd
+    ? trip.dateStart
+    : `${trip.dateStart} → ${trip.dateEnd}`;
+
+  const legPages = trip.legs.length
+    ? trip.legs.map((leg, idx) => renderTripPrintLeg(leg, idx, trip.legs.length)).join("")
+    : `<section class="trip-print-page trip-print-empty"><p>No legs in this trip yet.</p></section>`;
+
+  return `
+    <div class="screen trip-print-screen">
+      <!-- On-screen action bar — hidden when printing. -->
+      <div class="trip-print-actions">
+        <button class="back-btn" data-action="back-to-trip-edit">← back to trip</button>
+        <button class="primary-btn" data-action="print" style="margin-top:0;">Print / Save as PDF →</button>
+      </div>
+
+      <!-- Cover page -->
+      <section class="trip-print-page trip-print-cover">
+        <header>
+          <p class="trip-print-eyebrow">Trip plan binder</p>
+          <h1>${escText(trip.name)}</h1>
+          <p class="trip-print-sub">
+            ${escText(dateRange)} · ${escText(acLabel)} · ${trip.legs.length} leg${trip.legs.length === 1 ? "" : "s"}
+          </p>
+        </header>
+        ${renderCoverRouteList(trip)}
+        ${trip.notes ? `<div class="trip-print-notes"><h3>Trip notes</h3><p>${escText(trip.notes)}</p></div>` : ""}
+        <footer class="trip-print-footer">
+          Generated ${escText(generatedAt)} · This binder captures operational data only.
+          Brief weather day-of via the app — never fly on a snapshot.
+        </footer>
+      </section>
+
+      ${legPages}
+    </div>
+  `;
+}
+
+// Cover-page summary table — one row per leg with sequence, date, route.
+function renderCoverRouteList(trip) {
+  if (!trip.legs.length) return "";
+  const rows = trip.legs.map((leg, idx) => `
+    <tr>
+      <td class="trip-print-route-num">${idx + 1}</td>
+      <td class="trip-print-route-date">${escText(leg.date)}</td>
+      <td class="trip-print-route-icao">${escText(leg.dep)} → ${escText(leg.dest)}</td>
+    </tr>
+  `).join("");
+  return `
+    <table class="trip-print-route-list">
+      <thead><tr><th>#</th><th>Date</th><th>Route</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+// Per-leg printed page.
+function renderTripPrintLeg(leg, idx, total) {
+  return `
+    <section class="trip-print-page trip-print-leg">
+      <header class="trip-print-leg-head">
+        <p class="trip-print-eyebrow">Leg ${idx + 1} of ${total}</p>
+        <h2>${escText(leg.dep)} → ${escText(leg.dest)}</h2>
+        <p class="trip-print-sub">${escText(leg.date)}</p>
+      </header>
+      <div class="trip-print-leg-body">${renderLegOps(leg)}</div>
+      <footer class="trip-print-footer">
+        Operational snapshot only. Brief weather day-of via the app.
+      </footer>
+    </section>
+  `;
 }
 
 // escape helpers now live in ./escape.js — imported at the top of this file

@@ -4,6 +4,13 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 8 — Trip plan PDF binder)
+- **New `tripPrint` view** (`src/ui/trips.js` → `renderTripPrint`) — cover page + one page per leg with the full ops snapshot (crew, FBOs, slot, PPR, customs, fuel, overnight, filing, notes). Reuses `renderLegOps` so anything the editor shows also lands in the binder.
+- **Cover page** carries the trip name, date range, aircraft, total leg count, generated timestamp, plus a route-summary table (#/Date/Route) and trip-level notes block when present.
+- **"Print trip plan →" button** on the trip editor (between Delete trip and Save trip details).
+- **Trip-print CSS** with on-screen pagination (each section gets a card with accent-colored left border, scrollable preview) + `@media print` rules: `@page { margin: 0.5in }`, `page-break-after: always` per section, on-screen chrome (action buttons, action bar) hidden, leg-ops grid forced to two columns on paper.
+- **Why no weather snapshot**: for a 6-week trip, weather captured pre-departure is stale by leg 5. The binder is the *operations* artifact — stable, printed once before the trip. Day-of weather lives in the brief view, which already has its own print CSS for kneeboard PDFs.
+
 ### Added (Day 7 — SF50 G2+ takeoff verdict)
 - **`src/data/sf50.js`** — Cirrus Vision Jet SF50 G2+ (N2AK) performance profile. MTOW 6,000 lb, service ceiling FL310, cruise FL280, takeoff distance over a 50' obstacle indexed by density altitude (POH-derived piecewise-linear table). Margin thresholds for the verdict (ok ≥ 1,500 ft / tight ≥ 500 ft / warn < 500 ft) and an off-chart DA cutoff (10,000 ft).
 - **`src/calc/perf.js`** — pure functions `sf50TakeoffDistanceFt(da)` and `sf50TakeoffVerdict({ requiredFt, longestRunwayFt, densityAltFt })`. Verdict status: `ok` / `tight` / `warn` / `unknown` (when runway length unavailable, e.g. non-Tahoe legs).
