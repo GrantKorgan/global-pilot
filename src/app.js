@@ -298,6 +298,18 @@ function attachEvents() {
     });
   });
 
+  // Deep-link from the welcome "Next leg" card straight to that leg's brief.
+  // Sets currentTripId first so openLegBrief (which reads state.currentTripId)
+  // and the leg-nav strip on the brief both work.
+  document.querySelectorAll('[data-action="open-leg-from-welcome"]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tripId = btn.dataset.tripId;
+      const legId  = btn.dataset.legId;
+      state.currentTripId = tripId; // direct set before openLegBrief reads it
+      openLegBrief(legId);
+    });
+  });
+
   // Leg-nav strip on the brief — Previous / Next leg in the same trip.
   // Available only when briefSource === "trip" so we have a trip context.
   document.querySelectorAll('[data-action="prev-leg"]').forEach((btn) => {

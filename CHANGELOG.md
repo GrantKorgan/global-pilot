@@ -4,6 +4,13 @@ All notable changes to Global Pilot. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added (Day 9 — TL;DR summary + Next leg deep-link)
+- **Top-of-brief summary card** (`renderBriefSummary` in `src/ui/brief.js`) — rendered between the leg-nav strip and the route map. A single overall verdict (`READY` / `REVIEW` / `STOP`, accent-colored left border + badge) above quick-look tiles (dep flight category + wind + DA · dest flight category + wind · SF50 takeoff if applicable · coverage status) and a bulleted callouts list pulled from the data already fetched. The verdict bumps monotonically — first STOP-class item locks STOP.
+- **`computeVerdict` helper** in `src/ui/brief.js` — the rule set: destination LIFR/IFR → STOP, MVFR → REVIEW; dep IFR/LIFR → REVIEW; SF50 hard-warn → STOP, tight or off-chart DA → REVIEW; thunderstorms reported → STOP, other significant wx → REVIEW; gusts ≥ 35 kt → STOP, ≥ 25 kt → REVIEW; partial NOAA coverage (international) → REVIEW; 5+ AIRMETs/SIGMETs active → REVIEW. Each rule appends a one-sentence callout so the pilot sees WHY the verdict landed where it did.
+- **"Next leg" card on welcome** (`src/ui/welcome.js`) — surfaces when any saved trip has a leg dated today-or-later. Picks the earliest upcoming leg across all trips. Shows trip name, T-X day countdown, route, leg N of M, and (when populated) destination FBO. Two buttons: "Open trip" (→ trip editor) and "Brief this leg →" (deep-links straight to that leg's brief).
+- **`open-leg-from-welcome` handler** in `src/app.js` — sets `state.currentTripId` directly before calling `openLegBrief(legId)` so the leg-nav strip on the brief picks up the trip context.
+- **Cockpit-mode and print CSS** updated for the new `brief-summary` card. Print de-colors the badge (white background, black border) so it reads on B&W printers.
+
 ### Added (Day 8 — Trip plan PDF binder)
 - **New `tripPrint` view** (`src/ui/trips.js` → `renderTripPrint`) — cover page + one page per leg with the full ops snapshot (crew, FBOs, slot, PPR, customs, fuel, overnight, filing, notes). Reuses `renderLegOps` so anything the editor shows also lands in the binder.
 - **Cover page** carries the trip name, date range, aircraft, total leg count, generated timestamp, plus a route-summary table (#/Date/Route) and trip-level notes block when present.
