@@ -109,18 +109,14 @@ function attachEvents() {
 
   // === Welcome screen ===
 
-  // Pick a Tahoe departure → quick-brief setup
-  document.querySelectorAll(".dep-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const icao = btn.dataset.icao;
-      savePrefs({ departure: icao });
-      setState({ view: "setup", departure: icao, briefSource: "setup" });
-    });
-  });
-
   // Go to the Trips screen
   document.querySelectorAll('[data-action="go-to-trips"]').forEach((btn) => {
     btn.addEventListener("click", () => setState({ view: "trips" }));
+  });
+
+  // Go to the single-leg brief setup screen (replaces the old Tahoe-airport tiles)
+  document.querySelectorAll('[data-action="go-to-single-brief"]').forEach((btn) => {
+    btn.addEventListener("click", () => setState({ view: "setup", briefSource: "setup" }));
   });
 
   // === Trips screen ===
@@ -278,20 +274,25 @@ function attachEvents() {
   if (setupForm) {
     setupForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      const dep  = document.getElementById("dep-input").value.trim().toUpperCase();
       const dest = document.getElementById("dest-input").value.trim().toUpperCase();
       const aircraftKey = document.getElementById("aircraft-select").value;
-      if (!dest || !aircraftKey) return;
+      if (!dep || !dest || !aircraftKey) return;
+      if (!/^[A-Z0-9]{3,4}$/.test(dep)) {
+        alert("Departure ICAO should be 3 or 4 letters/digits (e.g., KRNO).");
+        return;
+      }
       if (!/^[A-Z0-9]{3,4}$/.test(dest)) {
         alert("Destination ICAO should be 3 or 4 letters/digits (e.g., KSFO).");
         return;
       }
-      savePrefs({ aircraftKey, lastDestination: dest });
+      savePrefs({ departure: dep, aircraftKey, lastDestination: dest });
       setState({
-        view: "brief", destination: dest, aircraftKey,
+        view: "brief", departure: dep, destination: dest, aircraftKey,
         briefSource: "setup",
         loading: true, error: null, data: null,
       });
-      loadBrief(state.departure, dest);
+      loadBrief(dep, dest);
     });
   }
 

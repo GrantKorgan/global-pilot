@@ -1,32 +1,38 @@
 // src/ui/setup.js
 // ---------------------------------------------------------------------------
-// Setup screen: destination ICAO input + aircraft type dropdown.
-// Renders HTML string; form submission is wired in app.js.
+// Setup screen for the single-leg brief path: departure ICAO + destination
+// ICAO + aircraft type. Renders HTML string; form submission wires in
+// app.js. (The trip-leg path skips this screen entirely — clicking "Brief"
+// on a leg in the trip editor goes straight to the brief view.)
 // ---------------------------------------------------------------------------
 
-import { DEPARTURES } from "../data/airports.js";
 import { AIRCRAFT } from "../data/aircraft.js";
+import { escAttr } from "./escape.js";
 
 export function renderSetup(state, prefs) {
-  const dep = DEPARTURES[state.departure];
-  const lastDest = (prefs && prefs.lastDestination) || "";
+  const lastDep  = (prefs && prefs.departure)       || state.departure  || "";
+  const lastDest = (prefs && prefs.lastDestination) || state.destination || "";
   const aircraftOptions = Object.entries(AIRCRAFT)
     .map(([key, info]) => `
       <option value="${key}" ${state.aircraftKey === key ? "selected" : ""}>${info.label}</option>
     `).join("");
+
   return `
     <div class="hero-bg setup-bg">
       <div class="screen">
-        <button class="back-btn" data-action="back-to-welcome">← change departure</button>
-        <h1>${state.departure} → ?</h1>
+        <button class="back-btn" data-action="back-to-welcome">← welcome</button>
+        <h1>Single-leg brief</h1>
         <p class="lead">
-          Departing ${dep.name} (${dep.elev.toLocaleString()} ft MSL).
-          Where to, and what are we flying?
+          Departure, destination, aircraft — three fields and we'll pull live weather for both ends.
         </p>
         <form id="setup-form" class="setup-form" autocomplete="off">
           <label>
+            Departure ICAO
+            <input type="text" id="dep-input" placeholder="e.g. KRNO" maxlength="4" value="${escAttr(lastDep)}" required>
+          </label>
+          <label>
             Destination ICAO
-            <input type="text" id="dest-input" placeholder="e.g. KSFO" maxlength="4" value="${lastDest}" required>
+            <input type="text" id="dest-input" placeholder="e.g. KSFO" maxlength="4" value="${escAttr(lastDest)}" required>
           </label>
           <label>
             Aircraft type
