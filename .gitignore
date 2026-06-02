@@ -7,3 +7,10 @@ node_modules/
 
 # Wrangler local deploy cache — recreated on every `wrangler deploy`.
 worker/.wrangler/
+
+# Claude Code personal settings — auto-approval allowlist is per-user.
+# The shared .claude/settings.json (if any) is committed; .local is not.
+.claude/settings.local.json
+
+# FAA NASR import cache — re-downloaded by the importer each run.
+.cache/
