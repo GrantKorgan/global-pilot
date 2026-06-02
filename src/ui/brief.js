@@ -77,6 +77,210 @@ function synthesizeDep(icao, metar) {
   };
 }
 
+// ---- Top-of-brief summary card --------------------------------------------
+// A 3-second-look TL;DR. Rendered between the leg-nav strip and the route
+// map. Combines a single overall verdict (READY / REVIEW / STOP) with
+// quick-look tiles (dep + dest flight category & wind, SF50 takeoff,
+// coverage) and a callouts list pulled from the data we've already fetched.
+//
+// The verdict is intentionally CONSERVATIVE: if any condition warrants
+// caution we bump up to REVIEW; hard go/no-go items bump to STOP. The
+// pilot still makes the call — this card just surfaces what matters.
+//
+// Bumping rules (highest wins):
+//   STOP    destination IFR/LIFR, hard SF50 takeoff-margin warn,
+//           insufficient runway for SF50
+//   REVIEW  destination MVFR, dep IFR/LIFR, tight SF50 margin,
+//           gusts ≥30 kt anywhere, significant wx (TS/FZ/FG/+RA/+SN/GR),
+//           off-chart density altitude, 5+ AIRMETs/SIGMETs, partial NOAA
+//           coverage (international leg)
+//   READY   none of the above
+
+function renderBriefSummary({ state, dep, depMetar, destMetar, aircraft, airsigmets, outOfCoverage, routeNm }) {
+  if (!depMetar) return ""; // can't summarize without surface data
+
+  const depFltCat  = metarFltCat(depMetar);
+  const destFltCat = destMetar ? metarFltCat(destMetar) : "";
+  const depAltIn   = altimeterInHg(depMetar);
+  const depDA      = densityAltitude(dep.elev, depMetar.temp, depAltIn);
+
+  // SF50-specific verdict (or null when aircraft isn't SF50).
+  const isSF50 = aircraft && aircraft.perfKey === "sf50_g2plus";
+  const longestRunwayFt = (dep.runways || []).reduce(
+    (m, r) => (r.lengthFt && r.lengthFt > m ? r.lengthFt : m), 0
+  ) || null;
+  const sf50ToReq   = isSF50 ? sf50TakeoffDistanceFt(depDA) : null;
+  const sf50Verdict = isSF50
+    ? sf50TakeoffVerdict({ requiredFt: sf50ToReq, longestRunwayFt, densityAltFt: depDA })
+    : null;
+
+  const verdict = computeVerdict({
+    depMetar, destMetar, depFltCat, destFltCat,
+    sf50Verdict, airsigmets, outOfCoverage,
+  });
+
+  const headlineFor = {
+    ready:  "Brief looks clean — verify on-screen and cross-check ForeFlight.",
+    review: "Items to review before departure.",
+    stop:   "Conditions warrant careful go/no-go before flight.",
+  };
+  const badgeFor = { ready: "READY", review: "REVIEW", stop: "STOP" };
+
+  const calloutsHtml = verdict.callouts.length
+    ? `<ul class="brief-summary-callouts">${
+        verdict.callouts.map((c) => `<li>${escText(c)}</li>`).join("")
+      }</ul>`
+    : "";
+
+  const sf50Tile = sf50Verdict ? `
+    <div class="brief-summary-tile">
+      <div class="bst-label">SF50 takeoff</div>
+      <div class="bst-value">${sf50ToReq != null ? sf50ToReq.toLocaleString() + " ft" : "—"}</div>
+      <div class="bst-sub">${
+        sf50Verdict.longestRunwayFt && sf50Verdict.marginFt != null
+          ? `Longest ${sf50Verdict.longestRunwayFt.toLocaleString()} ft · margin ${sf50Verdict.marginFt >= 0 ? "+" : ""}${sf50Verdict.marginFt.toLocaleString()} ft`
+          : "Verify against runway length"
+      }</div>
+    </div>
+  ` : "";
+
+  const coverageTile = `
+    <div class="brief-summary-tile">
+      <div class="bst-label">Coverage</div>
+      <div class="bst-value">${outOfCoverage ? "Partial" : "CONUS"}</div>
+      <div class="bst-sub">${
+        outOfCoverage
+          ? "NOAA feeds limited — cross-check ForeFlight"
+          : "All NOAA feeds available"
+      }</div>
+    </div>
+  `;
+
+  const depWind  = formatWind(depMetar.wdir, depMetar.wspd, depMetar.wgst);
+  const destWind = destMetar ? formatWind(destMetar.wdir, destMetar.wspd, destMetar.wgst) : "—";
+
+  return `
+    <div class="brief-summary verdict-${verdict.status}">
+      <div class="brief-summary-head">
+        <div class="brief-summary-badge">${badgeFor[verdict.status]}</div>
+        <div class="brief-summary-headline">
+          <div class="bsh-route">
+            ${escText(state.departure)} → ${escText(state.destination)}
+            ${routeNm ? `<span class="bsh-dist">· ${routeNm.toLocaleString()} nm</span>` : ""}
+          </div>
+          <div class="bsh-line">${escText(headlineFor[verdict.status])}</div>
+        </div>
+      </div>
+
+      <div class="brief-summary-grid">
+        <div class="brief-summary-tile">
+          <div class="bst-label">Departure · ${escText(state.departure)}</div>
+          <div class="bst-value badge-${(depFltCat || "").toLowerCase()}">${depFltCat || "—"}</div>
+          <div class="bst-sub">${escText(depWind)}${depDA != null ? ` · DA ${Math.round(depDA).toLocaleString()} ft` : ""}</div>
+        </div>
+        <div class="brief-summary-tile">
+          <div class="bst-label">Destination · ${escText(state.destination)}</div>
+          <div class="bst-value badge-${(destFltCat || "").toLowerCase()}">${destFltCat || "—"}</div>
+          <div class="bst-sub">${destMetar ? escText(destWind) : "no METAR returned"}</div>
+        </div>
+        ${sf50Tile}
+        ${coverageTile}
+      </div>
+
+      ${calloutsHtml}
+    </div>
+  `;
+}
+
+// Verdict computation — returns { status, callouts }.
+// `status` bumps monotonically: ready → review → stop. The first item to
+// trigger a higher state locks it in.
+function computeVerdict({ depMetar, destMetar, depFltCat, destFltCat, sf50Verdict, airsigmets, outOfCoverage }) {
+  const callouts = [];
+  let status = "ready";
+  const bump = (target) => {
+    const order = { ready: 0, review: 1, stop: 2 };
+    if (order[target] > order[status]) status = target;
+  };
+
+  // Destination flight category — most weighted.
+  if (destFltCat === "LIFR") {
+    bump("stop");
+    callouts.push("Destination is LIFR — alternate required, recheck mins.");
+  } else if (destFltCat === "IFR") {
+    bump("stop");
+    callouts.push("Destination is IFR — verify alternate is well above mins.");
+  } else if (destFltCat === "MVFR") {
+    bump("review");
+    callouts.push("Destination MVFR — IFR-capable arrival recommended.");
+  }
+
+  // Departure flight category — less weighted (you're leaving, not arriving).
+  if (depFltCat === "LIFR" || depFltCat === "IFR") {
+    bump("review");
+    callouts.push(`Departure ${depFltCat} — IFR departure procedure required.`);
+  }
+
+  // SF50 takeoff verdict.
+  if (sf50Verdict) {
+    if (sf50Verdict.status === "warn") {
+      bump("stop");
+      if (sf50Verdict.longestRunwayFt != null) {
+        callouts.push(`SF50 takeoff margin insufficient against ${sf50Verdict.longestRunwayFt.toLocaleString()} ft runway — recheck POH and consider weight reduction.`);
+      } else {
+        callouts.push("SF50 density altitude is off the well-charted region — recheck POH directly.");
+      }
+    } else if (sf50Verdict.status === "tight") {
+      bump("review");
+      callouts.push("Tight SF50 takeoff margin — no buffer for contamination or off-nominal departure.");
+    } else if (sf50Verdict.daWarning) {
+      bump("review");
+      callouts.push("Density altitude near the edge of the well-charted SF50 takeoff region.");
+    }
+  }
+
+  // Significant weather at either end.
+  const sigWxDep  = parseSignificantWeather(depMetar && depMetar.wxString);
+  const sigWxDest = parseSignificantWeather(destMetar && destMetar.wxString);
+  const allSig = [...new Set([...sigWxDep, ...sigWxDest])];
+  if (allSig.length) {
+    // Thunderstorms are STOP-class; everything else is REVIEW.
+    if (allSig.includes("thunderstorms")) {
+      bump("stop");
+      callouts.push("Thunderstorms reported at field — do not depart toward them.");
+    } else {
+      bump("review");
+      callouts.push(`Significant weather: ${allSig.join(", ")}.`);
+    }
+  }
+
+  // Gusts.
+  const depGst  = (depMetar && depMetar.wgst) || 0;
+  const destGst = (destMetar && destMetar.wgst) || 0;
+  const maxGst = Math.max(depGst, destGst);
+  if (maxGst >= 35) {
+    bump("stop");
+    callouts.push(`Surface gusts to ${maxGst} kt — severe mechanical turbulence likely; reconsider departure.`);
+  } else if (maxGst >= 25) {
+    bump("review");
+    callouts.push(`Surface gusts to ${maxGst} kt — expect mechanical turbulence on initial climb.`);
+  }
+
+  // Coverage.
+  if (outOfCoverage) {
+    bump("review");
+    callouts.push("International leg — NOAA feeds partial. Cross-check ForeFlight or handler brief.");
+  }
+
+  // AIRMETs / SIGMETs volume.
+  if (airsigmets && airsigmets.length >= 5) {
+    bump("review");
+    callouts.push(`${airsigmets.length} AIRMETs/SIGMETs active — review climbout and cruise sections.`);
+  }
+
+  return { status, callouts };
+}
+
 // ---- Orchestrator ----------------------------------------------------------
 
 export function renderBrief(state) {
@@ -171,6 +375,11 @@ export function renderBrief(state) {
       </header>
 
       ${renderLegNav(state)}
+
+      ${renderBriefSummary({
+        state, dep, depMetar, destMetar, aircraft,
+        airsigmets, outOfCoverage, routeNm,
+      })}
 
       <div id="route-map"
            data-dep-lat="${escAttr(dep.lat)}" data-dep-lon="${escAttr(dep.lon)}"

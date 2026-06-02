@@ -219,6 +219,48 @@
        TRIP PLANNER (Day 3) — welcome entry-point, trips list, trip editor.
        ================================================================= */
 
+    /* =================================================================
+       NEXT LEG CARD on the welcome screen. Surfaces when any saved trip
+       has a leg dated today-or-later. One-tap deep-link to that leg's
+       brief. Visually distinct from the promo cards (filled accent-tinted
+       background, NOT a button) so it reads as status rather than nav.
+       ================================================================= */
+    .next-leg-card {
+      background: var(--surface); border: 1px solid var(--accent);
+      border-left: 6px solid var(--accent);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .hero-bg .next-leg-card { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
+    .next-leg-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 12px; margin-bottom: 8px;
+    }
+    .next-leg-eyebrow {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      font-weight: 600; color: var(--muted);
+    }
+    .next-leg-countdown {
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .next-leg-body { margin-bottom: 14px; }
+    .next-leg-route {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+    }
+    .next-leg-icao {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 20px; font-weight: 600; color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .next-leg-date { color: var(--muted); font-size: 13px; }
+    .next-leg-fbo  { color: var(--muted); font-size: 13px; margin-top: 4px; display: block; }
+    .next-leg-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .next-leg-actions .ghost-btn,
+    .next-leg-actions .primary-btn { margin-top: 0; }
+
     /* Welcome screen — the "Planning a multi-leg trip?" promo button */
     .trip-promo {
       display: flex; justify-content: space-between; align-items: center; gap: 16px;
@@ -460,6 +502,56 @@
     .brief-title h1 { margin: 0; }
     .brief-sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
 
+    /* =================================================================
+       BRIEF SUMMARY CARD — the 3-second-look TL;DR at the top of every
+       brief. Visually heavy on purpose: pilot's eye lands here first.
+       The accent color (left-border + badge background) is driven by
+       the verdict state (.verdict-ready / -review / -stop).
+       ================================================================= */
+    .brief-summary {
+      background: var(--surface); border: 1px solid var(--line);
+      border-left: 6px solid var(--accent);
+      border-radius: 12px; padding: 18px 20px; margin-bottom: 16px;
+    }
+    .brief-summary.verdict-ready  { border-left-color: var(--ok); }
+    .brief-summary.verdict-review { border-left-color: var(--caution); }
+    .brief-summary.verdict-stop   { border-left-color: var(--warn); }
+
+    .brief-summary-head {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 12px;
+    }
+    .brief-summary-badge {
+      font-size: 14px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 8px 14px; border-radius: 6px; color: #fff;
+      flex-shrink: 0; font-variant-numeric: tabular-nums;
+    }
+    .verdict-ready  .brief-summary-badge { background: var(--ok); }
+    .verdict-review .brief-summary-badge { background: var(--caution); }
+    .verdict-stop   .brief-summary-badge { background: var(--warn); }
+    .bsh-route { font-size: 18px; font-weight: 600; color: var(--ink); }
+    .bsh-dist  { color: var(--muted); font-weight: 400; font-size: 15px; margin-left: 4px; }
+    .bsh-line  { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .brief-summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px; margin-bottom: 12px;
+    }
+    .brief-summary-tile {
+      background: var(--bg); border-radius: 8px; padding: 10px 12px;
+    }
+    .bst-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .bst-value { font-size: 18px; font-weight: 600; margin: 3px 0; line-height: 1.2; }
+    .bst-sub   { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .brief-summary-callouts {
+      margin: 8px 0 0; padding: 0 0 0 18px; font-size: 14px;
+      color: var(--ink); line-height: 1.5;
+    }
+    .brief-summary-callouts li { margin: 4px 0; }
+    .verdict-stop   .brief-summary-callouts li::marker { color: var(--warn); }
+    .verdict-review .brief-summary-callouts li::marker { color: var(--caution); }
+    .verdict-ready  .brief-summary-callouts li::marker { color: var(--ok); }
+
     /* Map */
     #route-map { height: 300px; border-radius: 12px; margin-bottom: 14px; border: 1px solid var(--line); }
     @media (max-width: 600px) { #route-map { height: 220px; } }
@@ -586,9 +678,11 @@
     body.cockpit .leg-row,
     body.cockpit .trip-promo,
     body.cockpit .leg-nav,
+    body.cockpit .brief-summary,
     body.cockpit .diagnostics {
       border-width: 2px;
     }
+    body.cockpit .brief-summary { border-left-width: 8px; }
     body.cockpit .hero-bg::before {
       /* Wash out the hero photo in cockpit mode so the white text is gone
          and the screen is readable in sun. */
@@ -716,6 +810,8 @@
       details.raw[open] pre { font-size: 10px; }
       details.raw:not([open]) { display: none; }
       .phase { border: 1px solid #ccc; box-shadow: none; page-break-inside: avoid; margin-bottom: 8px; }
+      .brief-summary { border: 1px solid #ccc; box-shadow: none; page-break-inside: avoid; margin-bottom: 8px; }
+      .brief-summary-badge { color: #000; background: #fff !important; border: 1px solid #000; }
       #route-map { display: none; } /* maps don't print well — text brief is the kneeboard */
       .brief-header { padding-bottom: 8px; margin-bottom: 12px; }
       h1 { font-size: 18px; }
