@@ -6,16 +6,13 @@
 // on a leg in the trip editor goes straight to the brief view.)
 // ---------------------------------------------------------------------------
 
-import { AIRCRAFT } from "../data/aircraft.js";
+import { aircraftSelectOptions } from "./aircraft-select.js";
 import { escAttr } from "./escape.js";
 
 export function renderSetup(state, prefs) {
   const lastDep  = (prefs && prefs.departure)       || state.departure  || "";
   const lastDest = (prefs && prefs.lastDestination) || state.destination || "";
-  const aircraftOptions = Object.entries(AIRCRAFT)
-    .map(([key, info]) => `
-      <option value="${key}" ${state.aircraftKey === key ? "selected" : ""}>${info.label}</option>
-    `).join("");
+  const aircraftOptions = aircraftSelectOptions(state.aircraftKey);
 
   return `
     <div class="hero-bg setup-bg">
@@ -40,6 +37,7 @@ export function renderSetup(state, prefs) {
               <option value="" disabled ${!state.aircraftKey ? "selected" : ""}>Select aircraft…</option>
               ${aircraftOptions}
             </select>
+            <span class="form-hint">Specs auto-fill from Wikipedia on first selection of each model.</span>
           </label>
           <button type="submit" class="primary-btn">Build brief →</button>
         </form>

@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import { AIRCRAFT } from "../data/aircraft.js";
+import { aircraftSelectOptions } from "./aircraft-select.js";
 import { getAllTrips, getTrip } from "../store/trips.js";
 import { escText, escAttr } from "./escape.js";
 import { EUROPE_2026_TRIP_ID } from "../data/fixtures/europe-2026.js";
@@ -80,9 +81,7 @@ export function renderTripEdit(state) {
     `;
   }
 
-  const aircraftOptions = Object.entries(AIRCRAFT)
-    .map(([key, info]) => `<option value="${key}" ${trip.aircraftId === key ? "selected" : ""}>${info.label}</option>`)
-    .join("");
+  const aircraftOptions = aircraftSelectOptions(trip.aircraftId);
 
   const legRows = trip.legs.length
     ? trip.legs.map((leg, idx) => renderLegRow(leg, idx)).join("")
