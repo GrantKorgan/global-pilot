@@ -47,6 +47,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!--
+    CONTENT SECURITY POLICY — defense in depth.
+    Even if an XSS hole slips past our escape helpers, the browser refuses to
+    execute scripts from anywhere except this origin + unpkg (for Leaflet).
+    `connect-src` lists the relays we're allowed to fetch through.
+    `style-src 'unsafe-inline'` is required because our entire CSS lives in a
+    <style> block; that's a deliberate trade-off (no build step).
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com;
+    img-src 'self' data: https://*.tile.openstreetmap.org https://*.arcgisonline.com;
+    connect-src 'self' https://*.workers.dev https://api.allorigins.win https://api.codetabs.com;
+    font-src 'self' https://unpkg.com;
+    frame-ancestors 'none';
+    base-uri 'self';
+  ">
+
   <title>Global Pilot</title>
 
   <!-- Leaflet (free open-source map library). Loaded from CDN; no key needed.

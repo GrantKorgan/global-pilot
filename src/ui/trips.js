@@ -9,6 +9,7 @@
 
 import { AIRCRAFT } from "../data/aircraft.js";
 import { getAllTrips, getTrip } from "../store/trips.js";
+import { escText, escAttr } from "./escape.js";
 
 // =============================================================================
 // Trip list view
@@ -43,9 +44,9 @@ function renderTripCard(trip) {
     ? trip.dateStart
     : `${trip.dateStart} → ${trip.dateEnd}`;
   return `
-    <button class="trip-card" data-action="open-trip" data-trip-id="${trip.id}">
+    <button class="trip-card" data-action="open-trip" data-trip-id="${escAttr(trip.id)}">
       <div class="trip-card-name">${escText(trip.name)}</div>
-      <div class="trip-card-meta">${dateRange}</div>
+      <div class="trip-card-meta">${escText(dateRange)}</div>
       <div class="trip-card-meta">${legCount} leg${legCount === 1 ? "" : "s"} · ${escText(acLabel)}</div>
     </button>
   `;
@@ -92,15 +93,15 @@ export function renderTripEdit(state) {
           </label>
           <label>
             Start date
-            <input type="date" id="trip-start" value="${trip.dateStart}" required>
+            <input type="date" id="trip-start" value="${escAttr(trip.dateStart)}" required>
           </label>
           <label>
             End date
-            <input type="date" id="trip-end" value="${trip.dateEnd}" required>
+            <input type="date" id="trip-end" value="${escAttr(trip.dateEnd)}" required>
           </label>
         </div>
         <div class="trip-form-actions">
-          <button type="button" class="ghost-btn" data-action="delete-trip" data-trip-id="${trip.id}">Delete trip</button>
+          <button type="button" class="ghost-btn" data-action="delete-trip" data-trip-id="${escAttr(trip.id)}">Delete trip</button>
           <button type="submit" class="primary-btn" style="margin-top:0;">Save trip details</button>
         </div>
       </form>
@@ -114,7 +115,7 @@ export function renderTripEdit(state) {
         <div class="leg-form-row">
           <label>From (ICAO)<input type="text" id="leg-dep" placeholder="e.g. KRNO" maxlength="4" required></label>
           <label>To (ICAO)<input type="text" id="leg-dest" placeholder="e.g. KSFO" maxlength="4" required></label>
-          <label>Date<input type="date" id="leg-date" value="${trip.dateStart}" required></label>
+          <label>Date<input type="date" id="leg-date" value="${escAttr(trip.dateStart)}" required></label>
           <button type="submit" class="primary-btn" style="margin-top:0;">+ Add leg</button>
         </div>
       </form>
@@ -123,28 +124,21 @@ export function renderTripEdit(state) {
 }
 
 function renderLegRow(leg, idx) {
+  const id = escAttr(leg.id);
   return `
-    <div class="leg-row" data-leg-id="${leg.id}">
+    <div class="leg-row" data-leg-id="${id}">
       <div class="leg-seq">${idx + 1}</div>
       <div class="leg-route">
-        <div class="leg-route-icao">${leg.dep} → ${leg.dest}</div>
-        <div class="leg-route-date">${leg.date}</div>
+        <div class="leg-route-icao">${escText(leg.dep)} → ${escText(leg.dest)}</div>
+        <div class="leg-route-date">${escText(leg.date)}</div>
       </div>
       <div class="leg-actions">
-        <button class="ghost-btn" data-action="view-leg-brief" data-leg-id="${leg.id}">Brief →</button>
-        <button class="ghost-btn leg-delete" data-action="delete-leg" data-leg-id="${leg.id}" aria-label="Delete leg">×</button>
+        <button class="ghost-btn" data-action="view-leg-brief" data-leg-id="${id}">Brief →</button>
+        <button class="ghost-btn leg-delete" data-action="delete-leg" data-leg-id="${id}" aria-label="Delete leg">×</button>
       </div>
     </div>
   `;
 }
 
-// HTML-escape helpers — keep input safe in attributes + text nodes.
-function escText(s) {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-function escAttr(s) {
-  return escText(s).replace(/"/g, "&quot;");
-}
+// escape helpers now live in ./escape.js — imported at the top of this file
+// so the same rules apply everywhere in the app.

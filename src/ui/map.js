@@ -6,7 +6,12 @@
 //
 // Leaflet itself is loaded from a CDN in index.html — the global `L` is
 // available at module load time.
+//
+// SECURITY NOTE: bindPopup() renders HTML, not text. Anything we pass
+// in must be escaped or the popup becomes an XSS vector.
 // ---------------------------------------------------------------------------
+
+import { escText } from "./escape.js";
 
 let mapInstance = null;
 
@@ -41,9 +46,9 @@ export function initRouteMap() {
   osm.addTo(mapInstance);
   L.control.layers({ "Streets": osm, "Satellite": sat }, null, { position: "topright" }).addTo(mapInstance);
 
-  L.marker([depLat, depLon]).addTo(mapInstance).bindPopup(`<strong>${depIcao}</strong><br>Departure`);
+  L.marker([depLat, depLon]).addTo(mapInstance).bindPopup(`<strong>${escText(depIcao)}</strong><br>Departure`);
   if (haveDest) {
-    L.marker([destLat, destLon]).addTo(mapInstance).bindPopup(`<strong>${destName}</strong><br>Destination`);
+    L.marker([destLat, destLon]).addTo(mapInstance).bindPopup(`<strong>${escText(destName)}</strong><br>Destination`);
     L.polyline([[depLat, depLon], [destLat, destLon]], { color: "#2a5d8a", weight: 3, opacity: 0.8 }).addTo(mapInstance);
     mapInstance.fitBounds([[depLat, depLon], [destLat, destLon]], { padding: [40, 40] });
   } else {

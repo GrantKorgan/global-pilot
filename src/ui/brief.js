@@ -12,7 +12,7 @@ import { DEPARTURES } from "../data/airports.js";
 import { AIRCRAFT } from "../data/aircraft.js";
 import { pressureAltitude, densityAltitude } from "../calc/atmosphere.js";
 import { crosswindComponent, preferredRunway } from "../calc/wind.js";
-import { distanceNm, nearestFBStation } from "../calc/geo.js";
+import { distanceNm, nearestFBStation, isInConus } from "../calc/geo.js";
 import { parseFB, closestFBAltitude } from "../wx/fb.js";
 import { PROXY_INFO } from "../wx/proxy.js";
 import {
@@ -21,6 +21,7 @@ import {
 import {
   formatWind, formatFBWind, formatAltitude, formatCeiling, formatObsTime,
 } from "./format.js";
+import { escText, escAttr } from "./escape.js";
 
 // ---- Departure airport synthesis -------------------------------------------
 // For non-Tahoe departures (any leg of a trip — e.g. EGKB, LEPA), we build
@@ -29,14 +30,18 @@ import {
 
 function synthesizeDep(icao, metar) {
   if (!metar) return null;
-  const fbLookup = nearestFBStation(metar.lat, metar.lon);
+  // FB winds aloft is CONUS-only. If the airport is outside the US, we set
+  // fbStation = null so downstream rendering shows "n/a" instead of fake
+  // data from the nearest US station (which could be thousands of miles away).
+  const inConus = isInConus(metar.lat, metar.lon);
+  const fbLookup = inConus ? nearestFBStation(metar.lat, metar.lon) : null;
   return {
     name: metar.name || icao,
     elev: metar.elev != null ? metar.elev : 0,
     lat: metar.lat,
     lon: metar.lon,
     runways: [],
-    fbStation: fbLookup ? fbLookup.code : "RNO",
+    fbStation: fbLookup ? fbLookup.code : null,
   };
 }
 
@@ -98,11 +103,20 @@ export function renderBrief(state) {
   const useHighFB = aircraft.cruiseFt >= 30000;
   const fbText = useHighFB ? fbHigh : fbLow;
 
-  // Departure FB: hardcoded per-airport.
-  const fbDep = parseFB(fbText, dep.fbStation);
+  // Coverage check — many NOAA AWC feeds are CONUS-only. If either end of
+  // the leg is outside the US, we suppress the US-only data and show a
+  // "supplement only" banner so the pilot doesn't read a partial brief
+  // as a complete one.
+  const depInConus  = isInConus(dep.lat, dep.lon);
+  const destInConus = destMetar ? isInConus(destMetar.lat, destMetar.lon) : false;
+  const outOfCoverage = !depInConus || !destInConus;
 
-  // Destination FB: pick the nearest forecast station to the destination's lat/lon.
-  const destFBLookup = destMetar ? nearestFBStation(destMetar.lat, destMetar.lon) : null;
+  // Departure FB: skip the lookup if dep isn't in CONUS (fbStation is null).
+  const fbDep = dep.fbStation ? parseFB(fbText, dep.fbStation) : null;
+
+  // Destination FB: pick the nearest forecast station, but only if dest is
+  // in CONUS. Otherwise the "nearest" station could be 3,000 nm away.
+  const destFBLookup = (destMetar && destInConus) ? nearestFBStation(destMetar.lat, destMetar.lon) : null;
   const fbDest = destFBLookup ? parseFB(fbText, destFBLookup.code) : null;
 
   const routeNm = destMetar ? Math.round(distanceNm(dep.lat, dep.lon, destMetar.lat, destMetar.lon)) : null;
@@ -112,11 +126,11 @@ export function renderBrief(state) {
       <header class="brief-header">
         <div class="brief-title">
           <button class="back-btn" data-action="back-to-setup">← new brief</button>
-          <h1>${state.departure} → ${state.destination}</h1>
+          <h1>${escText(state.departure)} → ${escText(state.destination)}</h1>
           <p class="brief-sub">
-            ${dep.name} → ${(destMetar && destMetar.name) || state.destination}
+            ${escText(dep.name)} → ${escText((destMetar && destMetar.name) || state.destination)}
             ${routeNm ? `· ${routeNm.toLocaleString()} nm` : ""}
-            · ${aircraft.label}
+            · ${escText(aircraft.label)}
           </p>
         </div>
         <div class="brief-header-actions">
@@ -125,16 +139,26 @@ export function renderBrief(state) {
       </header>
 
       <div id="route-map"
-           data-dep-lat="${dep.lat}" data-dep-lon="${dep.lon}"
-           data-dep-icao="${state.departure}"
-           ${destMetar ? `data-dest-lat="${destMetar.lat}" data-dest-lon="${destMetar.lon}" data-dest-name="${state.destination}"` : ""}>
+           data-dep-lat="${escAttr(dep.lat)}" data-dep-lon="${escAttr(dep.lon)}"
+           data-dep-icao="${escAttr(state.departure)}"
+           ${destMetar ? `data-dest-lat="${escAttr(destMetar.lat)}" data-dest-lon="${escAttr(destMetar.lon)}" data-dest-name="${escAttr(state.destination)}"` : ""}>
       </div>
 
-      ${renderDiagnostics(status, state.data.errors, destFBLookup)}
+      ${outOfCoverage ? `
+        <div class="alert danger" style="border-left-width:4px;font-size:15px;">
+          <strong>⚠ International leg — supplement only.</strong>
+          Several NOAA feeds are CONUS-only (winds aloft, AIRMETs, mountain-wave logic).
+          For this brief they'll show "n/a" or be suppressed.
+          <strong>Do not use this brief alone for go/no-go.</strong>
+          Cross-check ForeFlight, Jeppesen, or your handler's brief.
+        </div>
+      ` : ""}
+
+      ${renderDiagnostics(status, state.data.errors, destFBLookup, outOfCoverage)}
 
       ${renderRunwaySection(state, dep, depMetar)}
       ${renderClimboutSection(state, dep, depMetar, fbDep, aircraft, pirepsDep, airsigmets)}
-      ${renderCruiseSection(state, fbDep, fbDest, destFBLookup, aircraft, pirepsDep, pirepsDest, airsigmets)}
+      ${renderCruiseSection(state, dep, fbDep, fbDest, destFBLookup, aircraft, pirepsDep, pirepsDest, airsigmets)}
       ${renderDescentSection(state, destMetar, destTaf, aircraft, fbDest, destFBLookup, pirepsDest, airsigmets)}
       ${renderApproachSection(state, destMetar, destTaf, pirepsDest)}
       ${renderGroundSection(state, destMetar, destTaf)}
@@ -149,8 +173,11 @@ export function renderBrief(state) {
 
 // ---- Diagnostics panel -----------------------------------------------------
 
-function renderDiagnostics(status, errors, destFBLookup) {
+function renderDiagnostics(status, errors, destFBLookup, outOfCoverage) {
   if (!status) return "";
+  // Feeds that are CONUS-only — when out of coverage, mark them as n/a
+  // instead of leaving the user wondering why they show "empty".
+  const conusOnly = new Set(["airsigmets", "fbLow", "fbHigh"]);
   const rows = [
     ["metars",     "METARs"],
     ["tafs",       "TAFs"],
@@ -161,16 +188,19 @@ function renderDiagnostics(status, errors, destFBLookup) {
     ["fbHigh",     "Winds aloft (high)"],
   ];
   const rowsHtml = rows.map(([key, label]) => {
+    if (outOfCoverage && conusOnly.has(key)) {
+      return `<div class="diag-row"><span>${label}</span><span class="diag-status empty">n/a — outside CONUS</span></div>`;
+    }
     const s = status[key];
     const cls = s === "ok" ? "ok" : s === "empty" ? "empty" : "err";
     const text = s === "ok" ? "✓ ok" : s === "empty" ? "empty" : "✕ failed";
     return `<div class="diag-row"><span>${label}</span><span class="diag-status ${cls}">${text}</span></div>`;
   }).join("");
   const errSummary = errors.length
-    ? `<div class="diag-row" style="border-bottom:none;padding-top:8px;"><span style="color:var(--warn);font-size:12px;">${errors.length} error${errors.length > 1 ? "s" : ""}: ${errors.map((e) => e.message).join("; ")}</span></div>`
+    ? `<div class="diag-row" style="border-bottom:none;padding-top:8px;"><span style="color:var(--warn);font-size:12px;">${errors.length} error${errors.length > 1 ? "s" : ""}: ${escText(errors.map((e) => e.message).join("; "))}</span></div>`
     : "";
   const fbInfo = destFBLookup
-    ? `<div class="diag-row"><span>Destination FB station</span><span>${destFBLookup.code} (${destFBLookup.distanceNm} nm from field)</span></div>`
+    ? `<div class="diag-row"><span>Destination FB station</span><span>${escText(destFBLookup.code)} (${destFBLookup.distanceNm} nm from field)</span></div>`
     : "";
   const proxyInfo = PROXY_INFO.usingCustomWorker
     ? `<div class="diag-row"><span>CORS relay</span><span class="diag-status ok">via your Cloudflare Worker</span></div>`
@@ -268,7 +298,7 @@ function renderRunwaySection(state, dep, depMetar) {
       ${daAlert}
       ${gustAlert}
       ${wxFlags.length ? `<div class="alert">⚠ Significant weather at field: ${wxFlags.join(", ")}</div>` : ""}
-      <details class="raw"><summary>Raw METAR</summary><pre>${depMetar.rawOb || ""}</pre></details>
+      <details class="raw"><summary>Raw METAR</summary><pre>${escText(depMetar.rawOb || "")}</pre></details>
     </section>
   `;
 }
@@ -309,7 +339,7 @@ function renderClimboutSection(state, dep, depMetar, fbDep, aircraft, pirepsDep,
   return `
     <section class="phase">
       <h2>2 · Climbout</h2>
-      <h4>Winds &amp; temps aloft (departure region — ${dep.fbStation})</h4>
+      <h4>Winds &amp; temps aloft ${dep.fbStation ? `(departure region — ${escText(dep.fbStation)})` : "(n/a — departure outside CONUS)"}</h4>
       <table>
         <thead><tr><th>Altitude</th><th>Wind</th><th>OAT</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -323,7 +353,7 @@ function renderClimboutSection(state, dep, depMetar, fbDep, aircraft, pirepsDep,
 
 // ---- Phase 3: Cruise -------------------------------------------------------
 
-function renderCruiseSection(state, fbDep, fbDest, destFBLookup, aircraft, pirepsDep, pirepsDest, airsigmets) {
+function renderCruiseSection(state, dep, fbDep, fbDest, destFBLookup, aircraft, pirepsDep, pirepsDest, airsigmets) {
   const targetAlt = aircraft.cruiseFt;
   const fbAltDep  = closestFBAltitude(targetAlt, fbDep);
   const fbAltDest = closestFBAltitude(targetAlt, fbDest);
@@ -342,18 +372,23 @@ function renderCruiseSection(state, fbDep, fbDest, destFBLookup, aircraft, pirep
 
   const relevantAdvisories = filterAirsigmetsByAltitude(airsigmets, Math.max(0, targetAlt - 3000), targetAlt + 3000);
 
+  // The departure/destination FB station may be null when the airport is
+  // outside CONUS — render a clearer label in that case.
+  const depFbLabel  = dep.fbStation ? `${escText(dep.fbStation)} @ ${fbAltDep ? fbAltDep.toLocaleString() + " ft" : "—"}` : "n/a — outside CONUS";
+  const destFbLabel = destFBLookup ? `${escText(destFBLookup.code)} @ ${fbAltDest ? fbAltDest.toLocaleString() + " ft" : "—"}` : "n/a — outside CONUS";
+
   return `
     <section class="phase">
       <h2>3 · Cruise — ${formatAltitude(targetAlt)}</h2>
       <div class="phase-grid">
         <div class="metric">
-          <div class="metric-label">Departure region · ${DEPARTURES[state.departure].fbStation} @ ${fbAltDep ? fbAltDep.toLocaleString() : "—"} ft</div>
-          <div class="metric-value">${cruiseDep ? formatFBWind(cruiseDep) : "—"}</div>
+          <div class="metric-label">Departure region · ${depFbLabel}</div>
+          <div class="metric-value">${cruiseDep ? formatFBWind(cruiseDep) : (dep.fbStation ? "—" : "use ForeFlight")}</div>
           <div class="metric-sub">${cruiseDep && cruiseDep.tempC != null ? "OAT " + cruiseDep.tempC + "°C" : ""}</div>
         </div>
         <div class="metric">
-          <div class="metric-label">Destination region · ${destFBLookup ? destFBLookup.code : "—"} @ ${fbAltDest ? fbAltDest.toLocaleString() : "—"} ft</div>
-          <div class="metric-value">${cruiseDest ? formatFBWind(cruiseDest) : "—"}</div>
+          <div class="metric-label">Destination region · ${destFbLabel}</div>
+          <div class="metric-value">${cruiseDest ? formatFBWind(cruiseDest) : (destFBLookup ? "—" : "use ForeFlight")}</div>
           <div class="metric-sub">${cruiseDest && cruiseDest.tempC != null ? "OAT " + cruiseDest.tempC + "°C" : ""}</div>
         </div>
       </div>
@@ -396,7 +431,7 @@ function renderDescentSection(state, destMetar, destTaf, aircraft, fbDest, destF
       ${destTaf ? `
         <div class="taf-block">
           <h4>Destination TAF</h4>
-          <pre>${destTaf.rawTAF || ""}</pre>
+          <pre>${escText(destTaf.rawTAF || "")}</pre>
         </div>
       ` : `<p class="warn">No TAF available for ${state.destination}.</p>`}
       ${relevantAdvisories.length ? renderAirsigmets(relevantAdvisories, "Descent-band advisories") : ""}
@@ -470,7 +505,7 @@ function renderGroundSection(state, destMetar, destTaf) {
           <div class="metric-value">${formatObsTime(destMetar.obsTime)}</div>
         </div>
       </div>
-      <details class="raw"><summary>Raw METAR · ${state.destination}</summary><pre>${destMetar.rawOb || ""}</pre></details>
+      <details class="raw"><summary>Raw METAR · ${escText(state.destination)}</summary><pre>${escText(destMetar.rawOb || "")}</pre></details>
     </section>
   `;
 }
@@ -482,7 +517,7 @@ function renderPireps(pireps, label) {
     <tr>
       <td>${p.altitudeFtMsl != null ? Math.round(p.altitudeFtMsl).toLocaleString() + " ft" : "—"}</td>
       <td>${p.acType || p.aircraftRef || "—"}</td>
-      <td class="mono">${p.rawOb || ""}</td>
+      <td class="mono">${escText(p.rawOb || "")}</td>
     </tr>
   `).join("");
   return `
@@ -501,8 +536,8 @@ function renderAirsigmets(items, label) {
     const lo = a.altitudeLow1 != null ? formatAltitude(a.altitudeLow1) : "SFC";
     const hi = a.altitudeHi1  != null ? formatAltitude(a.altitudeHi1)  : "—";
     return `<li>
-      <strong>${a.airSigmetType || ""} · ${a.hazard || ""}</strong>
-      ${a.severity ? `· ${a.severity}` : ""}
+      <strong>${escText(a.airSigmetType || "")} · ${escText(a.hazard || "")}</strong>
+      ${a.severity ? `· ${escText(a.severity)}` : ""}
       — ${lo} to ${hi}
     </li>`;
   }).join("");

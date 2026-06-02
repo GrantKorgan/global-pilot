@@ -20,6 +20,15 @@ export function distanceNm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Is this point in the contiguous US? Used to decide whether NOAA AWC's
+// US-only feeds (winds aloft FB chart, AIRMETs/SIGMETs, etc.) are
+// meaningful. Bounding box is intentionally generous — picks up Maine,
+// Florida Keys, and the West Coast border.
+export function isInConus(lat, lon) {
+  if (lat == null || lon == null) return false;
+  return lat >= 24 && lat <= 50 && lon >= -125 && lon <= -66;
+}
+
 // For a destination at (lat, lon), find the nearest FB forecast station.
 // Returns { code, distanceNm } or null if coords are missing.
 export function nearestFBStation(lat, lon) {
