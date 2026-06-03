@@ -40,6 +40,8 @@ import { loadPrefs, savePrefs } from "./store/prefs.js";
 import { getTrip, saveTrip, deleteTrip } from "./store/trips.js";
 import { getProfile, hasProfile, saveProfile } from "./store/profiles.js";
 import { fetchAircraftProfile } from "./wx/wiki.js";
+import { lookupRegistry, explainRegistryReason } from "./wx/registry.js";
+import { matchAircraft } from "./data/aircraft-matcher.js";
 import { newTrip, newLeg } from "./data/types.js";
 import { AIRCRAFT } from "./data/aircraft.js";
 import { buildEurope2026Trip, EUROPE_2026_TRIP_ID } from "./data/fixtures/europe-2026.js";
@@ -62,6 +64,10 @@ let state = {
   briefSource: "setup",   // "setup" | "trip" — controls back-from-brief navigation
   // Cafe finder:
   cafeQuery: "",          // search filter on the cafes screen
+  // Tail-number lookup result on setup screen.
+  // Shape: { status: "pending"|"success"|"error", tail, make, model, year,
+  //   owner, status_faa, matchedLabel?, confidence?, message? }
+  tailLookup: null,
 };
 
 function setState(patch) {
@@ -365,6 +371,28 @@ function attachEvents() {
     sel.addEventListener("change", (e) => maybeEnrichAircraft(e.target.value));
   });
 
+  // === Tail-number lookup (setup screen) ===
+  // Pilot types a tail number → we hit the worker's /registry/{N} endpoint,
+  // parse the FAA response, match make/model to a catalog entry, and
+  // pre-select that entry in the dropdown. The async result drives a
+  // re-render via setState({ tailLookup: ... }) so the inline result box
+  // updates.
+  const tailBtn = document.getElementById("tail-lookup-btn");
+  if (tailBtn) {
+    tailBtn.addEventListener("click", () => handleTailLookup());
+  }
+  // Pressing Enter in the tail input should also trigger lookup (without
+  // submitting the outer form).
+  const tailInput = document.getElementById("tail-input");
+  if (tailInput) {
+    tailInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleTailLookup();
+      }
+    });
+  }
+
   // === Navigation ===
 
   document.querySelectorAll('[data-action="back-to-welcome"]').forEach((btn) => {
@@ -408,6 +436,56 @@ function openLegBrief(legId) {
     data: null,
   });
   loadBrief(leg.dep, leg.dest);
+}
+
+// Tail-number lookup orchestration. Called from the "Look up →" button
+// (or Enter in the tail input). Hits the worker's /registry/{N} endpoint,
+// matches the FAA make/model to a catalog entry via the matcher, sets
+// the dropdown to the matched key, and shows an inline result.
+//
+// All three states (pending / success / error) drive a re-render via
+// setState({ tailLookup }) so the UI updates without a full reload.
+async function handleTailLookup() {
+  const input = document.getElementById("tail-input");
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  setState({ tailLookup: { status: "pending", tail: raw.toUpperCase() } });
+
+  const result = await lookupRegistry(raw);
+
+  if (!result.ok) {
+    setState({
+      tailLookup: {
+        status: "error",
+        tail: result.tail || raw.toUpperCase(),
+        message: explainRegistryReason(result.reason),
+      },
+    });
+    return;
+  }
+
+  // Successful FAA lookup — now match to a catalog entry.
+  const match = matchAircraft({ make: result.make, model: result.model });
+
+  const success = {
+    status: "success",
+    tail: result.tail,
+    make: result.make,
+    model: result.model,
+    year: result.year,
+    owner: result.owner,
+    status_faa: result.status,
+    matchedKey: match.key,
+    matchedLabel: match.key ? AIRCRAFT[match.key].label : null,
+    confidence: match.confidence,
+  };
+  setState({ tailLookup: success, aircraftKey: match.key || state.aircraftKey });
+
+  // Persist + warm the profile cache for the matched aircraft.
+  savePrefs({ tail: result.tail });
+  if (match.key) maybeEnrichAircraft(match.key);
 }
 
 // Lazy aircraft profile enrichment.
