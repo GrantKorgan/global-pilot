@@ -98,17 +98,25 @@ const MODEL_CODE_MAP = {
   "cl-600-2c10":  "challenger_350",
   "cl-600-2b19":  "challenger_350",
   "cl-30":        "challenger_350",
-  // Gulfstream — G-* designations
+  // Gulfstream — G-* designations. FAA returns both type-cert ("GVI")
+  // and marketing names in parens ("GVI (G650ER)"). The matcher tries
+  // each piece; we map both styles.
   "g-iv":         "gulfstream_g450",
   "g-iv-sp":      "gulfstream_g450",
+  "giv":          "gulfstream_g450",
+  "giv-sp":       "gulfstream_g450",
   "g-v":          "gulfstream_g550",
+  "gv":           "gulfstream_g550",
   "gv-sp":        "gulfstream_g550",
+  "gvsp":         "gulfstream_g550",
   "g-vi":         "gulfstream_g650",
+  "gvi":          "gulfstream_g650",
   "g500":         "gulfstream_g500",
   "g600":         "gulfstream_g600",
   "g650":         "gulfstream_g650",
   "g650er":       "gulfstream_g650er",
   "g700":         "gulfstream_g700",
+  "g800":         "gulfstream_g800",
   // Embraer Phenom / Praetor / Legacy
   "emb-505":      "phenom300",
   "emb-500":      "phenom100",
@@ -149,29 +157,38 @@ export function matchAircraft({ make, model }) {
     return { key: null, confidence: 0, candidates: [], reason: "no_make_or_model" };
   }
   const faMakeN  = norm(make);
-  const faModelN = norm(model);
+  // FAA often returns a parenthetical specifier ("GVI (G650ER)" — base
+  // type-cert + marketing name). Try direct lookup on both the full
+  // normalized string and the unparenthesized variants.
+  const candidates = expandModelCandidates(model);
 
-  // 1. Direct model-code lookup wins outright.
-  const direct = MODEL_CODE_MAP[faModelN];
-  if (direct && AIRCRAFT_BY_KEY[direct]) {
-    return {
-      key: direct,
-      confidence: 250,
-      candidates: [direct],
-      reason: "model_code_match",
-    };
+  // 1. Direct model-code lookup wins outright — try each candidate.
+  for (const cand of candidates) {
+    const direct = MODEL_CODE_MAP[cand];
+    if (direct && AIRCRAFT_BY_KEY[direct]) {
+      return {
+        key: direct,
+        confidence: 250,
+        candidates: [direct],
+        reason: "model_code_match",
+      };
+    }
   }
 
   // 2. Identify the manufacturer family.
   const family = identifyManufacturerFamily(faMakeN);
 
-  // 3. Walk the catalog, score each model.
+  // 3. Walk the catalog, score each model. Try every model candidate
+  //    and keep the best score per catalog entry.
   const scored = [];
   for (const cat of Object.values(AIRCRAFT_CATALOG)) {
     for (const group of Object.values(cat.groups)) {
       for (const entry of group.models) {
-        const score = scoreEntry(entry, faMakeN, faModelN, family);
-        if (score > 0) scored.push({ key: entry.key, label: entry.label, score });
+        let best = 0;
+        for (const faModelN of candidates) {
+          best = Math.max(best, scoreEntry(entry, faMakeN, faModelN, family));
+        }
+        if (best > 0) scored.push({ key: entry.key, label: entry.label, score: best });
       }
     }
   }
@@ -216,17 +233,65 @@ function scoreEntry(entry, faMakeN, faModelN, family) {
     if (faMakeN && labelN.includes(faMakeN)) score += 60;
   }
 
-  // Model designation — strongest signal.
-  if (faModelN && labelN.includes(faModelN)) {
-    score += 80;
-  } else {
-    // Word-level match: each FAA-model word also in the label adds weight.
-    const modelWords = (faModelN || "").split(/[\s\-\/]/).filter(Boolean);
-    for (const w of modelWords) {
-      if (w.length >= 2 && labelN.includes(w)) score += 25;
+  // Model designation — strongest signal. Check BOTH directions:
+  //   - catalog label contains FAA model (e.g., "Cirrus SR22T" ⊃ "sr22t")
+  //   - FAA model contains catalog model token (e.g., "gvi (g650er)" ⊃ "g650er")
+  // Extract a "model token" from the label by stripping the family name.
+  if (faModelN) {
+    if (labelN.includes(faModelN)) {
+      score += 80;
+    } else {
+      const labelModelToken = stripFamilyFromLabel(labelN, family);
+      if (labelModelToken.length >= 3 && faModelN.includes(labelModelToken)) {
+        score += 80;
+      } else {
+        // Word-level match: each FAA-model word also in the label adds weight.
+        const modelWords = faModelN.split(/[\s\-\/()]/).filter(Boolean);
+        for (const w of modelWords) {
+          if (w.length >= 2 && labelN.includes(w)) score += 25;
+        }
+      }
     }
   }
   return score;
+}
+
+// Extract the model-only portion of a catalog label by stripping the
+// manufacturer family token (e.g., "gulfstream g650er" with family
+// "gulfstream" → "g650er"). Used for the reverse-direction substring
+// check above. Returns the label unchanged if no family known.
+function stripFamilyFromLabel(labelN, family) {
+  if (!family) return labelN;
+  return labelN.replace(family, "").replace(/\s+/g, " ").trim();
+}
+
+// Expand a single FAA model string into ordered candidate strings to
+// try. FAA returns "GVI (G650ER)" as type-cert + marketing-name. We
+// try the marketing name FIRST (more specific — "G650ER" beats "GVI"
+// which could be any G650-family). Then the type-cert designation,
+// then the full string. First direct-map hit wins.
+function expandModelCandidates(model) {
+  if (!model) return [];
+  const out = [];
+  const seen = new Set();
+  const push = (s) => { if (s && !seen.has(s)) { seen.add(s); out.push(s); } };
+
+  // 1. Inside-parens (most specific marketing variant).
+  const inner = String(model).match(/\(([^)]+)\)/);
+  if (inner) push(norm(inner[1]));
+
+  // 2. Outside-parens (type-cert designation).
+  push(norm(String(model).replace(/\s*\([^)]*\)/g, "")));
+
+  // 3. Full string verbatim (catches anything not matching above).
+  push(norm(model));
+
+  // 4. Space-stripped variants of every candidate so far ("TBM 900" → "tbm900"
+  //    matches our compact MODEL_CODE_MAP keys like "tbm900").
+  for (const c of [...out]) {
+    push(c.replace(/\s+/g, ""));
+  }
+  return out;
 }
 
 function identifyManufacturerFamily(faMakeN) {
@@ -239,11 +304,14 @@ function identifyManufacturerFamily(faMakeN) {
   return null;
 }
 
-// Lowercase, strip punctuation, collapse whitespace.
+// Lowercase, strip noisy punctuation, collapse whitespace. Keeps "/",
+// "-", and parens as meaningful separators — model designations like
+// "PC-12/47E" or "G-IV-SP" carry information in those separators that
+// MODEL_CODE_MAP keys also preserve.
 function norm(s) {
   if (!s) return "";
   return String(s).toLowerCase()
-    .replace(/[.,\\\/]/g, "")
+    .replace(/[.,\\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

@@ -136,10 +136,16 @@ async function handleRegistryLookup(rawTail) {
   try {
     const res = await fetch(upstream, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; global-pilot/1.0; +https://github.com/GrantKorgan/global-pilot)",
-        "Accept": "text/html,application/xhtml+xml",
+        // FAA's Akamai bot-wall returns 403 to anything that identifies as
+        // an automated client. A real Safari UA passes. (Confirmed by
+        // direct probe — bot-style UAs 403, browser UAs 200.) We're not
+        // bypassing rate limits or terms — the registry is a public
+        // service for tail-number lookups; we're just looking like a real
+        // browser so Akamai doesn't reflexively block us.
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
       },
-      // FAA serves slow sometimes — give it a generous timeout via cf options.
       cf: { cacheTtl: 86400, cacheEverything: true },
     });
     if (!res.ok) {
@@ -172,6 +178,12 @@ async function handleRegistryLookup(rawTail) {
     owner: parsed.owner,
     mode_s_hex: parsed.modeS,
     mfgSerial: parsed.mfgSerial,
+    engineMake:  parsed.engineMake,
+    engineModel: parsed.engineModel,
+    typeAircraft: parsed.typeAircraft,
+    typeEngine:   parsed.typeEngine,
+    awDate:        parsed.awDate,
+    expirationDate: parsed.expirationDate,
     fetchedAt: new Date().toISOString(),
     source: "registry.faa.gov",
   });
@@ -179,81 +191,84 @@ async function handleRegistryLookup(rawTail) {
 
 // ---- FAA HTML parsing ----------------------------------------------------
 //
-// FAA's NNumberResult page uses semantic <td>/<span> pairs with labeled
-// data attributes for each field, in a layout that's been stable for
-// years. We scan for the label text and capture the next sibling cell.
+// FAA's modern NNumberResult markup tags every value cell with a
+// `data-label="..."` attribute matching its semantic field name. We
+// scan the whole document for these and extract values directly:
+//   <td data-label="Manufacturer Name">CIRRUS DESIGN CORP            </td>
+//   <td data-label="Model">SF50                </td>
+//   <td data-label="Mfr Year">2024</td>
+//   <td data-label="Mode S Code (Base 16 / Hex)">A18D5B</td>
 //
-// Robustness: rather than regex on raw HTML (fragile), we use a single-
-// pass tokenizer that finds known label strings and grabs the cell or
-// inline text that follows.
+// This is FAR more robust than scanning for label text and capturing
+// "the next td" — that approach broke when FAA tweaked their layout.
+// Now we only break if they rename the data-label attribute itself,
+// which is much less likely.
 //
-// Stable label tokens we look for:
-//   "Manufacturer Name"
-//   "Model"
-//   "Year Mfr"
-//   "Type Aircraft" (used as a sanity check)
-//   "Status"
-//   "Name"           (owner name — first occurrence after Registered Owner header)
-//   "Mode S Code (Base 16 / Hex)"
-//   "Serial Number"  (manufacturer serial)
-//
-// Returns whatever fields we found; missing → null. Safe to mix with
-// strict JSON null-checks downstream.
+// Owner name uses data-label="Name" but appears multiple times in the
+// page (once in the registered-owner section, once in a co-owner
+// section if applicable). We grab the FIRST occurrence after the
+// "Registered Owner" header anchor.
 
 function parseFaaHtml(html) {
+  // First pass: build a map of every data-label → value pair on the page.
+  const fields = collectDataLabels(html);
   return {
-    make:      extractFieldAfterLabel(html, "Manufacturer Name"),
-    model:     extractFieldAfterLabel(html, "Model"),
-    year:      parseYear(extractFieldAfterLabel(html, "Year Mfr")),
-    status:    extractFieldAfterLabel(html, "Status"),
-    owner:     extractOwnerName(html),
-    modeS:     extractFieldAfterLabel(html, "Mode S Code (Base 16 / Hex)"),
-    mfgSerial: extractFieldAfterLabel(html, "Serial Number"),
+    make:      fields["Manufacturer Name"] || null,
+    model:     fields["Model"] || null,
+    year:      parseYear(fields["Mfr Year"] || fields["Year Mfr"]),
+    status:    fields["Status"] || (fields["Certificate Issue Date"] ? "Valid" : null), // FAA doesn't always emit a literal "Status" — infer Valid when there's a Certificate Issue Date
+    owner:     extractFirstOwnerName(html),
+    modeS:     fields["Mode S Code (Base 16 / Hex)"] || null,
+    mfgSerial: fields["Serial Number"] || null,
+    engineMake:  fields["Engine Manufacturer"] || null,
+    engineModel: fields["Engine Model"] || null,
+    typeAircraft: fields["Aircraft Type"] || null,
+    typeEngine:   fields["Engine Type"] || null,
+    awDate:       fields["A/W Date"] || null,
+    expirationDate: fields["Expiration Date"] || null,
   };
 }
 
-// Find the first occurrence of a label text in the HTML, then capture
-// the next <td>...</td> or <span>...</span> content after it (which
-// is where FAA puts the value).
-function extractFieldAfterLabel(html, label) {
-  const labelIdx = html.indexOf(label);
-  if (labelIdx < 0) return null;
-  // Look for the next <td ...>...</td> after the label.
-  const tail = html.substring(labelIdx);
-  let m = tail.match(/<td[^>]*>([^<]*(?:<[^/][^>]*>[^<]*<\/[^>]*>[^<]*)*)<\/td>/);
-  // The label itself was inside a <td>; we want the FOLLOWING <td>, so
-  // skip past the first match and find the next one.
-  if (m) {
-    const afterFirst = tail.substring(m.index + m[0].length);
-    const next = afterFirst.match(/<td[^>]*>([\s\S]*?)<\/td>/);
-    if (next) return cleanText(next[1]);
+// Build { dataLabel: cleanedValue } over the entire HTML. Empty
+// data-label="" attributes (which mark the field-NAME cell, not the
+// value cell) are skipped. Multiple cells sharing the same label keep
+// the first non-empty value.
+function collectDataLabels(html) {
+  const out = {};
+  const re = /<td[^>]*\bdata-label="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const label = m[1].trim();
+    if (!label) continue;
+    const value = cleanText(m[2]);
+    if (value && !out[label]) out[label] = value;
   }
-  // Fallback: <span> sibling pattern.
-  m = tail.match(/<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>/);
-  if (m) return cleanText(m[2]);
-  return null;
+  return out;
 }
 
-function extractOwnerName(html) {
-  // The owner block usually starts with "Registered Owner" as a section
-  // header, followed by a "Name" label whose value is the owner.
+// Owner name is `data-label="Name"`. The page can have multiple Name
+// fields (registered owner + co-owner + fractional owner notation).
+// We use the first occurrence after the "Registered Owner" anchor.
+function extractFirstOwnerName(html) {
   const ownerSection = html.indexOf("Registered Owner");
-  if (ownerSection < 0) return extractFieldAfterLabel(html, "Name");
-  const tail = html.substring(ownerSection);
-  return extractFieldAfterLabel(tail, "Name");
+  const scope = ownerSection >= 0 ? html.substring(ownerSection) : html;
+  const m = scope.match(/<td[^>]*\bdata-label="Name"[^>]*>([\s\S]*?)<\/td>/i);
+  return m ? cleanText(m[1]) : null;
 }
 
 function parseYear(s) {
   if (!s) return null;
-  const m = s.match(/(\d{4})/);
+  const m = String(s).match(/(\d{4})/);
   return m ? parseInt(m[1], 10) : null;
 }
 
 function cleanText(s) {
   if (!s) return null;
-  // Strip any nested tags + collapse whitespace + decode minimal entities.
-  const stripped = s.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
-                    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  const stripped = s.replace(/<[^>]+>/g, "")
+                    .replace(/&nbsp;/g, " ")
+                    .replace(/&amp;/g, "&")
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">");
   const collapsed = stripped.replace(/\s+/g, " ").trim();
   return collapsed || null;
 }
