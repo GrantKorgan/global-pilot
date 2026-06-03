@@ -17,7 +17,10 @@ export function renderWelcome(state, prefs) {
   return `
     <div class="hero-bg welcome-bg">
       <div class="screen">
-        <h1>Welcome, pilot</h1>
+        <img src="logos/globalpilot-monogram-wing.png"
+             alt="Global Pilot"
+             class="welcome-logo"
+             width="980" height="280">
         <p class="lead">What can we plan today?</p>
 
         ${nextLegCard}

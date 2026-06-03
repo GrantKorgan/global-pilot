@@ -166,6 +166,43 @@
       color: rgba(255, 255, 255, 0.88);
       text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
     }
+
+    /* =================================================================
+       BRAND LOGO on the welcome screen — replaces the "Welcome, pilot"
+       h1. PNG converted from the EPS source in logos/eps-source/.
+       The logo carries dark-navy wordmark text, which doesn't read
+       against the hero photo's dark overlay alone, so we soften the
+       overlay at the top of the welcome screen specifically (see
+       .welcome-bg::before override below) and the logo sits in the
+       lightest band of the gradient.
+       ================================================================= */
+    .welcome-logo {
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      margin: 0 0 18px;
+      /* Subtle drop-shadow so the logo doesn't get lost against busy
+         photo backgrounds. Mirrors the .hero-bg h1 text-shadow weight. */
+      filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.35));
+    }
+    /* The default .hero-bg::before gradient runs 45→80% dark from top
+       to bottom. For the welcome screen specifically, we lighten the
+       top band so the logo's dark wordmark text stays readable. The
+       rest of the page (promo cards, etc.) still gets the darker bg
+       in the lower portion. */
+    .welcome-bg::before {
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.55) 0%,
+        rgba(10, 12, 20, 0.30) 28%,
+        rgba(10, 12, 20, 0.65) 60%,
+        rgba(10, 12, 20, 0.80) 100%
+      ) !important;
+    }
+    @media (max-width: 600px) {
+      .welcome-logo { max-width: 340px; }
+    }
     .hero-bg .footnote { color: rgba(255, 255, 255, 0.72); }
     .hero-bg .footnote a {
       color: rgba(255, 255, 255, 0.88);
