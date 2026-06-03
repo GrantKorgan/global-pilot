@@ -69,6 +69,17 @@
 
   <title>Global Pilot</title>
 
+  <!-- Favicons + PWA manifest.
+       Sources live in logos/ — favicon-{32,180,192,512}.png are rasterized
+       from logos/eps-source/GlobalPilot_04_MonogramWing_Icon_Transparent.eps
+       via Ghostscript (see logos/favicon-master-1024.png for the master).
+       theme-color matches the badge's dark-navy background. -->
+  <link rel="icon" type="image/png" sizes="32x32"   href="logos/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="logos/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180"      href="logos/favicon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#06131A">
+
   <!-- Leaflet (free open-source map library). Loaded from CDN; no key needed.
        Must load before src/app.js because src/ui/map.js uses the global L. -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
