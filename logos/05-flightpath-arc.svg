@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Global Pilot — Concept 05: Globe with flight arc + aircraft
+     A hemisphere (lower-half globe outline) with an arcing flight path
+     above it and a small swept-wing aircraft at the apex. Below: the
+     wordmark. Reads as "a pilot crossing the world". -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200" preserveAspectRatio="xMidYMid meet">
+  <!-- Globe hemisphere (just the lower arc) -->
+  <path d="M 50 130 A 90 90 0 0 1 230 130"
+        fill="none" stroke="#2a5d8a" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Latitude line on the visible hemisphere -->
+  <path d="M 70 130 A 70 30 0 0 1 210 130"
+        fill="none" stroke="#2a5d8a" stroke-width="2" opacity="0.5"/>
+  <!-- Meridian dot at top -->
+  <line x1="140" y1="40" x2="140" y2="130" stroke="#2a5d8a" stroke-width="2" opacity="0.3"/>
+  <!-- Flight path arc from lower-left over the globe to upper-right -->
+  <path d="M 30 130 Q 140 -10 250 60"
+        fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 5"/>
+  <!-- Small swept-wing plane at the apex (rotated to follow the arc) -->
+  <g transform="translate(165, 30) rotate(-30)">
+    <path d="M 0 0 L 26 -3 L 26 3 Z" fill="#1a1a1a"/>
+    <path d="M 10 -2 L 4 -10 L 14 -2 Z" fill="#1a1a1a"/>
+    <path d="M 10 2  L 4 10  L 14 2  Z" fill="#1a1a1a"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="290" y="115"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="48"
+        font-weight="600"
+        letter-spacing="-0.5"
+        fill="#1a1a1a">Global</text>
+  <text x="290" y="170"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="48"
+        font-weight="600"
+        letter-spacing="-0.5"
+        fill="#2a5d8a">Pilot</text>
+</svg>

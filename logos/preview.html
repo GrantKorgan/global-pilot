@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Pilot — Logo Review</title>
+  <style>
+    :root {
+      --accent: #2a5d8a;
+      --ink: #1a1a1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f5f5f5;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      padding: 32px 40px 24px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+    .sub { margin: 0; color: #666; font-size: 14px; }
+    .grid {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .card {
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card-head {
+      padding: 14px 22px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .card-num {
+      font-size: 12px;
+      color: #888;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .card-note {
+      padding: 10px 22px 14px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+      border-bottom: 1px solid #eee;
+    }
+    .stages {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      min-height: 220px;
+    }
+    .stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+    .stage-light { background: white; }
+    .stage-bg    { background: #f0f4f7; }
+    .stage-dark  { background: #1a1a1a; }
+    .stage img, .stage object { max-width: 100%; height: auto; max-height: 140px; display: block; }
+    /* For the dark stage, apply a filter that lightens the dark ink while
+       keeping the accent in a recognizable color zone. Not a perfect color
+       inversion but conveys whether the logo reads on dark backgrounds. */
+    .stage-dark img, .stage-dark object {
+      filter: invert(0.95) hue-rotate(180deg) saturate(0.8);
+    }
+    .actions {
+      display: flex;
+      gap: 14px;
+      padding: 14px 22px;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+    }
+    .actions a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .actions a:hover { text-decoration: underline; }
+    .stage-label {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      font-size: 10px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stage { position: relative; }
+    .stage-dark .stage-label { color: #666; }
+    footer {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 13px;
+    }
+    footer a { color: var(--accent); }
+    @media (max-width: 700px) {
+      .stages { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Global Pilot — Logo Review</h1>
+    <p class="sub">Six concepts, each rendered on light / tinted / dark backgrounds. Pick one and we'll wire it into the welcome screen. Click "Download SVG" on the one you want.</p>
+  </header>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Wordmark — clean</div>
+        <div class="card-num">Concept 01</div>
+      </div>
+      <div class="card-note">Pure typography in two weights ("Global" light, "Pilot" bold). Most versatile — works at any scale, no decoration to age. Single ink color.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="01-wordmark-clean.svg"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="01-wordmark-clean.svg"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="01-wordmark-clean.svg" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="01-wordmark-clean.svg" download>Download SVG</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Wordmark — two-tone</div>
+        <div class="card-num">Concept 02</div>
+      </div>
+      <div class="card-note">Same typography as 01 but "Pilot" picks up the slate-blue accent (#2a5d8a). Adds color without committing to an icon. Reads professional.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="02-wordmark-twotone.svg"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="02-wordmark-twotone.svg"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="02-wordmark-twotone.svg" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="02-wordmark-twotone.svg" download>Download SVG</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Globe + wordmark</div>
+        <div class="card-num">Concept 03</div>
+      </div>
+      <div class="card-note">Stylized globe (outer circle, latitude rings, meridian) anchors the left, wordmark beside. Reads as "global navigation". Most literal interpretation.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="03-globe-wordmark.svg"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="03-globe-wordmark.svg"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="03-globe-wordmark.svg" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="03-globe-wordmark.svg" download>Download SVG</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">GP monogram (badge)</div>
+        <div class="card-num">Concept 04</div>
+      </div>
+      <div class="card-note">Stacked "GP" inside a circular frame. Doubles as a favicon and app icon. Pair with a separate wordmark elsewhere if you need the full name.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="04-monogram-gp.svg" style="max-width:140px;"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="04-monogram-gp.svg" style="max-width:140px;"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="04-monogram-gp.svg" style="max-width:140px;" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="04-monogram-gp.svg" download>Download SVG</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Flight-path arc + plane</div>
+        <div class="card-num">Concept 05</div>
+      </div>
+      <div class="card-note">Globe hemisphere with a dashed flight path arcing over it, small swept-wing plane at the apex. Wordmark stacked beside. Most narrative — tells a story.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="05-flightpath-arc.svg"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="05-flightpath-arc.svg"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="05-flightpath-arc.svg" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="05-flightpath-arc.svg" download>Download SVG</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Compass rose + wordmark</div>
+        <div class="card-num">Concept 06</div>
+      </div>
+      <div class="card-note">8-point compass star with a longer accent-colored north arm. Aviation-traditional iconography, modern execution. Pairs nicely with the wordmark.</div>
+      <div class="stages">
+        <div class="stage stage-light"><img src="06-compass-rose.svg"><div class="stage-label">light</div></div>
+        <div class="stage stage-bg"><img src="06-compass-rose.svg"><div class="stage-label">tinted</div></div>
+        <div class="stage stage-dark"><img src="06-compass-rose.svg" class="invert"><div class="stage-label">dark</div></div>
+      </div>
+      <div class="actions"><a href="06-compass-rose.svg" download>Download SVG</a></div>
+    </div>
+
+  </div>
+
+  <footer>
+    All files are SVG with transparent backgrounds, infinitely scalable.
+    For EPS: open the chosen SVG in Illustrator → Type → Create Outlines → File → Save As → EPS.
+    Or use <a href="https://cloudconvert.com/svg-to-eps" target="_blank">CloudConvert</a> for a free browser-based conversion.
+  </footer>
+</body>
+</html>

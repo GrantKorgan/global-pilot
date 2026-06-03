@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Global Pilot — Concept 03: Stylized globe + wordmark
+     Globe icon (outer circle + 2 latitude ellipses + meridian) anchors
+     the left, wordmark sits right of it. Reads as "global navigation". -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" preserveAspectRatio="xMidYMid meet">
+  <!-- Globe glyph -->
+  <g transform="translate(60, 60)">
+    <circle cx="0" cy="0" r="44" fill="none" stroke="#2a5d8a" stroke-width="3.5"/>
+    <!-- Equator -->
+    <line x1="-44" y1="0" x2="44" y2="0" stroke="#2a5d8a" stroke-width="2.5"/>
+    <!-- Northern latitude -->
+    <ellipse cx="0" cy="-20" rx="40" ry="9" fill="none" stroke="#2a5d8a" stroke-width="2"/>
+    <!-- Southern latitude -->
+    <ellipse cx="0" cy="20"  rx="40" ry="9" fill="none" stroke="#2a5d8a" stroke-width="2"/>
+    <!-- Prime meridian -->
+    <line x1="0" y1="-44" x2="0" y2="44" stroke="#2a5d8a" stroke-width="2"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="130" y="76"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="52"
+        font-weight="600"
+        letter-spacing="-0.5"
+        fill="#1a1a1a">Global</text>
+  <text x="310" y="76"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="52"
+        font-weight="600"
+        letter-spacing="-0.5"
+        fill="#2a5d8a"> Pilot</text>
+</svg>

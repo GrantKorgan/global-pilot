@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Global Pilot — Concept 04: GP monogram badge
+     Square badge with "G" and "P" stacked / overlapped. Works on its
+     own as an icon (favicon, app icon, etc.) and pairs with a wordmark
+     elsewhere if needed. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+  <!-- Circle frame -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#2a5d8a" stroke-width="6"/>
+  <!-- G -->
+  <text x="50" y="125"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="110"
+        font-weight="700"
+        letter-spacing="-4"
+        fill="#1a1a1a">G</text>
+  <!-- P slightly overlapping the G's negative space -->
+  <text x="105" y="125"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="110"
+        font-weight="700"
+        letter-spacing="-4"
+        fill="#2a5d8a">P</text>
+</svg>
